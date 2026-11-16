@@ -6,6 +6,8 @@ import {
 import type { Prompt } from "../data/prompts";
 import type { Help } from "../lib/scaffold";
 import type { Idea, Plan } from "../lib/store";
+import type { ParaKind } from "../lib/structure";
+import { JOBS_FOR, LessonReminder, ParaChecks, TransitionBank } from "./StructureTools";
 
 // The guided thinking steps: brainstorm both sides, test each reason, pick a
 // side, build the outline, and (with training wheels) write one paragraph at
@@ -415,10 +417,11 @@ export function OutlineStep({ prompt, help, plan, setPlan, onDone, finishLabel }
 
 /* ---------------- Training wheels: write one paragraph at a time ---------------- */
 
-type Para = { title: string; plan: ReactNode; starters: string[]; sample: string };
+type Para = { kind: ParaKind; title: string; plan: ReactNode; starters: string[]; sample: string };
 
 export function buildParas(plan: Plan): Para[] {
-  const body = plan.reasons.map((r, i) => ({
+  const body = plan.reasons.map((r, i): Para => ({
+    kind: "body",
     title: `Body paragraph ${i + 1}: Reason ${i + 1}`,
     plan: (
       <>
@@ -430,15 +433,17 @@ export function buildParas(plan: Plan): Para[] {
   }));
   const paras: Para[] = [
     {
+      kind: "intro",
       title: "Introduction: hook + opinion",
       plan: (<><b>Hook:</b> {plan.hook}<br /><b>Opinion:</b> {plan.opinion}</>),
-      starters: [],
+      starters: ["Have you ever", "Did you know that", "Picture this:", "I believe", "because"],
       sample: `${DEMO.hook} Recess is the best part of the day for a lot of kids. ${DEMO.opinion}`,
     },
     ...body,
   ];
   if (plan.counter?.claim.trim()) {
     paras.push({
+      kind: "counter",
       title: "Answer the other side",
       plan: (<>{plan.counter.claim} {plan.counter.answer}</>),
       starters: [...COUNTER_STARTERS.slice(0, 1), ...ANSWER_STARTERS.slice(0, 1)],
@@ -446,6 +451,7 @@ export function buildParas(plan: Plan): Para[] {
     });
   }
   paras.push({
+    kind: "end",
     title: "Conclusion: say it again in new words",
     plan: (<><b>Ending:</b> {plan.ending}</>),
     starters: END_STARTERS.slice(0, 2),
@@ -479,10 +485,19 @@ export function ParagraphDraft({ plan, paras, setParas, onDone }: { plan: Plan; 
           {open === i && (
             <div className="para-body">
               <div className="para-plan">🍔 Your plan: <div>{p.plan}</div></div>
-              {p.starters.length > 0 && <Chips items={p.starters} onPick={(s) => set(i, withStarter(vals[i], s))} />}
+              {p.kind === "intro" ? (
+                <Chips items={p.starters} onPick={(s) => set(i, withStarter(vals[i], s))} />
+              ) : (
+                <details className="tb-details" open={i === 1}>
+                  <summary className="small"><b>🌉 Transition words</b> (tap one to add it)</summary>
+                  <TransitionBank jobs={JOBS_FOR[p.kind]} onPick={(s) => set(i, withStarter(vals[i], s))} />
+                </details>
+              )}
               <textarea className="essay-box para-box" value={vals[i]} spellCheck={false} autoCorrect="off" autoCapitalize="off" onChange={(e) => set(i, e.target.value)} placeholder="Write this paragraph here…" />
+              <ParaChecks kind={p.kind} text={vals[i]} />
               <div className="row">
                 <button type="button" className="btn ghost small-btn" onClick={() => setSample(sample === i ? null : i)}>{sample === i ? "Hide sample" : "👀 Show a sample paragraph"}</button>
+                <LessonReminder kind={p.kind} />
                 <span className="spacer" />
                 {i < list.length - 1 && <button type="button" className="btn small-btn" disabled={wc(vals[i]) < 8} onClick={() => setOpen(i + 1)}>Next paragraph →</button>}
               </div>

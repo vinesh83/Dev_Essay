@@ -77,6 +77,7 @@ export type State = {
   collection: Record<string, number>; // card id -> copies
   helpOverride?: 0 | 1 | 2 | 3; // 0 or missing = automatic training wheels
   plansDoneComplete?: number; // complete plans from Brainstorm Sprints
+  lessons?: Record<string, { stars: number; done: number }>; // Writing School
 };
 
 export type ChestTier = "wood" | "silver" | "gold";
@@ -202,6 +203,7 @@ export const BADGES: Record<string, { name: string; icon: string; desc: string }
   streak7: { name: "Unstoppable", icon: "🚀", desc: "7-day streak" },
   planner: { name: "Master Planner", icon: "🗺️", desc: "Made 5 essay plans" },
   drills50: { name: "Drill Champ", icon: "🥋", desc: "Answered 50 drills correctly" },
+  scholar: { name: "Writing Scholar", icon: "🎓", desc: "Finished every Writing School lesson" },
 };
 
 export function checkBadges(): string[] {
@@ -223,6 +225,7 @@ export function checkBadges(): string[] {
     ["streak7", s.streak.count >= 7],
     ["planner", s.plansDone >= 5],
     ["drills50", correct >= 50],
+    ["scholar", Object.keys(s.lessons ?? {}).length >= 6],
   ];
   for (const [id, ok] of rules) if (ok && !s.badges.includes(id)) earned.push(id);
   if (earned.length) {
@@ -255,3 +258,14 @@ export function giveChest(tier: ChestTier, reason: string) {
 }
 
 export const practiceToday = (s: State) => s.practice[String(today())] ?? 0;
+
+/** Record a finished lesson. The first finish pays more than a replay. */
+export function finishLesson(id: string, stars: number) {
+  const first = !state.lessons?.[id];
+  update((s) => {
+    const prev = s.lessons?.[id];
+    s.lessons = { ...(s.lessons ?? {}), [id]: { stars: Math.max(stars, prev?.stars ?? 0), done: (prev?.done ?? 0) + 1 } };
+  });
+  addXp(first ? 40 : 10, first ? 30 : 5);
+  return first;
+}

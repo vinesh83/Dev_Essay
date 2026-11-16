@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import ChestModal, { ChestIcon } from "./components/ChestModal";
+import MusicControl from "./components/MusicControl";
 import PracticeRing from "./components/PracticeRing";
+import { music } from "./lib/music";
 import { Toaster, toast } from "./components/Toast";
 import { isCounting, usePracticeClock } from "./lib/session";
 import { level, practiceToday, useStore, xpForLevel } from "./lib/store";
@@ -8,15 +10,17 @@ import Collection from "./pages/Collection";
 import Diagnostic from "./pages/Diagnostic";
 import Drills from "./pages/Drills";
 import Home from "./pages/Home";
+import Lessons from "./pages/Lessons";
 import Progress from "./pages/Progress";
 import Shop from "./pages/Shop";
 import Typing from "./pages/Typing";
 import Write from "./pages/Write";
 
-export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic";
+export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic" | "lessons";
 
 const NAV: [Route, string, string][] = [
   ["home", "🏠", "Home"],
+  ["lessons", "🎓", "Learn"],
   ["typing", "⌨️", "Typing"],
   ["drills", "🥋", "Drills"],
   ["write", "✍️", "Write"],
@@ -43,6 +47,8 @@ export default function App() {
   const [chestOpen, setChestOpen] = useState(false);
   const [, setTick] = useState(0);
   showChests = () => setChestOpen(true);
+
+  useEffect(() => music.resumeOnGesture(), []);
 
   useEffect(() => {
     const on = () => {
@@ -89,6 +95,7 @@ export default function App() {
               <ChestIcon tier={s.chests[0].tier} size={30} shaking /> {s.chests.length}
             </button>
           )}
+          <MusicControl />
           <span className="chip" title="Daily streak">🔥 {s.streak.count}</span>
           <span className="chip gold" title="Coins">🪙 {s.coins}</span>
           <span className="chip" title={`${s.xp} XP`} style={{ minWidth: 96 }}>
@@ -117,6 +124,7 @@ export default function App() {
         {route === "shop" && <Shop />}
         {route === "cards" && <Collection />}
         {route === "diagnostic" && <Diagnostic />}
+        {route === "lessons" && <Lessons key={arg ?? "hub"} id={arg} />}
       </main>
       {chestOpen && <ChestModal onClose={() => setChestOpen(false)} />}
       <Toaster />

@@ -1,5 +1,6 @@
 import { DRILLS, SKILLS, type Drill, type SkillId, type RubricArea } from "../data/drills";
 import { TYPING_LEVELS, TYPING_TARGET_ACCURACY, TYPING_TARGET_WPM } from "../data/typing";
+import { LESSONS } from "../data/lessons";
 import { PROMPTS, type Prompt } from "../data/prompts";
 import { addXp, today, update, type State } from "./store";
 
@@ -140,6 +141,10 @@ function buildMission(s: State): MissionTask[] {
   const lvl = currentTypingLevel(s);
   if (!t.onTarget || !levelPassed(s, TYPING_LEVELS.length)) {
     tasks.push({ id: "typing", title: `Typing: ${lvl.name}`, detail: `Level ${lvl.id}. Goal: ${TYPING_TARGET_WPM} WPM at ${TYPING_TARGET_ACCURACY}% accuracy.`, route: "typing", minutes: 10 });
+  }
+  const lesson = LESSONS.find((l) => !s.lessons?.[l.id]);
+  if (lesson) {
+    tasks.push({ id: "lesson", title: `Lesson: ${lesson.title}`, detail: `${lesson.icon} ${lesson.tagline}`, route: `lessons/${lesson.id}`, minutes: 8 });
   }
   const weak = weakestSkills(s, 2);
   tasks.push({ id: "drills", title: "Skill Drills", detail: `Focus: ${weak.map((w) => SKILLS[w].name).join(" and ")}`, route: "drills", minutes: 5 });

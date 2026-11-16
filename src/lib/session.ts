@@ -5,7 +5,7 @@ import { giveChest, getState, today, update } from "./store";
 // screen, the tab is visible, and he pressed a key or clicked in the last
 // 60 seconds. Hitting the daily goal (30 min) earns a gold treasure chest.
 
-const PRACTICE_ROUTES = new Set(["typing", "drills", "write", "brainstorm", "mock", "diagnostic"]);
+const PRACTICE_ROUTES = new Set(["typing", "drills", "write", "brainstorm", "mock", "diagnostic", "lessons"]);
 const IDLE_MS = 60_000;
 
 let lastInput = Date.now();

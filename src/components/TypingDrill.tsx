@@ -1,11 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+import { sfx } from "../lib/sfx";
+import { addXp } from "../lib/store";
 import HandGuide from "./HandGuide";
 
 // Stop-on-error typing drill. The cursor waits until the right key is
 // pressed, which trains accuracy before speed. A color-coded keyboard shows
 // which finger owns the next key.
 
-export type TypingResult = { wpm: number; acc: number; keys: Record<string, { hits: number; misses: number }> };
+export type TypingResult = { wpm: number; acc: number; keys: Record<string, { hits: number; misses: number }>; bestCombo?: number; points?: number; bonusCoins?: number };
+
+// Instant rewards. Points and combos come only from correct keys, so care
+// pays more than speed. A miss resets the combo, never the points.
+const MILESTONES: [number, number, string][] = [
+  [10, 1, "Nice combo!"], [25, 2, "Hot streak!"], [50, 3, "On fire!"], [75, 4, "Unstoppable!"],
+  [100, 6, "LEGENDARY!"], [150, 8, "Super legendary!"], [200, 10, "Keyboard master!"],
+];
+const tier = (c: number) => (c >= 100 ? "t4" : c >= 50 ? "t3" : c >= 25 ? "t2" : c >= 10 ? "t1" : "t0");
+type Pop = { id: number; text: string; big?: boolean; dx: number };
 
 const FINGER: Record<string, [string, string]> = {};
 const assign = (keys: string, cls: string, name: string) => [...keys].forEach((k) => (FINGER[k] = [cls, name]));
@@ -46,7 +57,28 @@ export default function TypingDrill({
   const [pos, setPos] = useState(0);
   const [errAt, setErrAt] = useState<number | null>(null);
   const [left, setLeft] = useState(timeLimit ?? 0);
-  const stats = useRef({ start: 0, typed: 0, correct: 0, keys: {} as TypingResult["keys"], done: false });
+  const stats = useRef({ start: 0, typed: 0, correct: 0, keys: {} as TypingResult["keys"], done: false, combo: 0, best: 0, points: 0, coins: 0, lineMiss: false });
+  const [combo, setCombo] = useState(0);
+  const [points, setPoints] = useState(0);
+  const [pops, setPops] = useState<Pop[]>([]);
+  const [banner, setBanner] = useState<{ id: number; text: string } | null>(null);
+  const popId = useRef(0);
+  const pop = (text: string, big = false) => {
+    const id = ++popId.current;
+    setPops((ps) => [...ps.slice(-5), { id, text, big, dx: Math.round((Math.random() - 0.5) * 60) }]);
+    setTimeout(() => setPops((ps) => ps.filter((p) => p.id !== id)), 900);
+  };
+  const shout = (text: string) => {
+    const id = ++popId.current;
+    setBanner({ id, text });
+    setTimeout(() => setBanner((b) => (b?.id === id ? null : b)), 1400);
+  };
+  const reward = (coins: number, text: string) => {
+    stats.current.coins += coins;
+    addXp(coins, coins);
+    sfx.coin();
+    shout(text);
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const line = lines[lineIdx] ?? "";
   const next = line[pos];
@@ -60,6 +92,9 @@ export default function TypingDrill({
       wpm: Math.min(200, Math.round(st.correct / 5 / minutes)),
       acc: st.typed ? Math.round((st.correct / st.typed) * 100) : 0,
       keys: st.keys,
+      bestCombo: st.best,
+      points: st.points,
+      bonusCoins: st.coins,
     });
   };
 
@@ -92,7 +127,25 @@ export default function TypingDrill({
       st.correct++;
       rec.hits++;
       setErrAt(null);
+      st.combo++;
+      st.best = Math.max(st.best, st.combo);
+      const mult = 1 + Math.floor(st.combo / 25);
+      st.points += mult;
+      setCombo(st.combo);
+      setPoints(st.points);
+      sfx.key(st.combo);
+      pop(`+${mult}`);
+      const m = MILESTONES.find(([n]) => n === st.combo) ?? (st.combo > 200 && st.combo % 50 === 0 ? [st.combo, 10, "Keyboard master!"] : null);
+      if (m) {
+        reward(m[1], `🔥 ${m[0]} combo! ${m[2]} +${m[1]} 🪙`);
+        sfx.combo(MILESTONES.findIndex(([n]) => n === m[0]) + 1);
+      }
       if (pos + 1 >= line.length) {
+        if (!st.lineMiss && line.length >= 8) {
+          reward(2, "✨ Perfect line! +2 🪙");
+          pop("PERFECT!", true);
+        }
+        st.lineMiss = false;
         if (lineIdx + 1 >= lines.length) {
           setPos(pos + 1);
           finish();
@@ -104,6 +157,11 @@ export default function TypingDrill({
     } else {
       rec.misses++;
       setErrAt(pos);
+      st.lineMiss = true;
+      if (st.combo >= 10) pop("combo lost", true);
+      st.combo = 0;
+      setCombo(0);
+      sfx.miss();
     }
   };
 
@@ -126,6 +184,19 @@ export default function TypingDrill({
         </span>
         <span className="spacer" />
         {timeLimit ? <span className={`timer ${left <= 10 ? "low" : ""}`}>{stats.current.start ? left : timeLimit}s</span> : null}
+      </div>
+      <div className="combo-hud">
+        <div className={`combo ${tier(combo)}`} aria-live="off">
+          <span className="combo-flame" aria-hidden>{combo >= 10 ? "🔥" : "✨"}</span>
+          <span><b>{combo}</b><small>combo</small></span>
+          <span className="combo-mult">x{1 + Math.floor(combo / 25)}</span>
+          <div className="combo-bar"><div style={{ width: `${((combo % 25) / 25) * 100}%` }} /></div>
+          {pops.map((p) => (
+            <span key={p.id} className={`pop ${p.big ? "big" : ""}`} style={{ ["--dx" as string]: `${p.dx}px` }}>{p.text}</span>
+          ))}
+        </div>
+        <div className="points"><b>{points}</b><small>points</small></div>
+        {banner && <div key={banner.id} className="combo-banner">{banner.text}</div>}
       </div>
       <div className="type-line" aria-live="polite">
         {[...line].map((ch, i) => (

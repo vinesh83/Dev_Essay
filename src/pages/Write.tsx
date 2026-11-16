@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { go } from "../App";
 import Results from "../components/Results";
+import { StructureScan, TransitionBank } from "../components/StructureTools";
 import { BrainstormStep, Coach, OutlineStep, ParagraphDraft, ScratchPlanner, SideStep } from "../components/Thinking";
 import { toast, toastBadges } from "../components/Toast";
+import { LESSONS } from "../data/lessons";
 import { PROMPTS, promptById, type Prompt } from "../data/prompts";
 import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } from "../data/process";
 import { analyze } from "../lib/analyze";
@@ -52,6 +54,12 @@ function PromptPicker({ mode, onPick }: { mode: WriteMode; onPick: (p: Prompt) =
       <div className="card">
         <h1>{title}</h1>
         <p className="muted">{blurb}</p>
+        {mode !== "mock" && LESSONS.some((l) => !s.lessons?.[l.id]) && (
+          <Coach>
+            New moves to learn! Take <b>{LESSONS.find((l) => !s.lessons?.[l.id])!.icon} {LESSONS.find((l) => !s.lessons?.[l.id])!.title}</b> in Writing School first, then use it here.{" "}
+            <button className="btn ghost small-btn" onClick={() => go("lessons", LESSONS.find((l) => !s.lessons?.[l.id])!.id)}>🎓 Go to the lesson</button>
+          </Coach>
+        )}
         <div className="card" style={{ background: "var(--brand-soft)", boxShadow: "none" }}>
           <span className="pill">{suggested.kind === "passage" ? "📖 Read + write" : "💭 Opinion"}</span>
           <h2 style={{ marginTop: 8 }}>{suggested.title}</h2>
@@ -111,6 +119,21 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
   const [plan, setPlan] = useState<Plan>(emptyPlan);
   const [paras, setParas] = useState<string[]>([]);
   const [text, setText] = useState("");
+  const box = useRef<HTMLTextAreaElement>(null);
+  const insertWord = (w: string) => {
+    const el = box.current;
+    const at = el ? el.selectionStart : text.length;
+    const before = text.slice(0, at);
+    const pad = before && !/\s$/.test(before) ? " " : "";
+    const next = `${before}${pad}${w} ${text.slice(at)}`;
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = at + pad.length + w.length + 1;
+      el.setSelectionRange(pos, pos);
+    });
+  };
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [hints, setHints] = useState(true);
   const [grading, setGrading] = useState(false);
@@ -270,8 +293,14 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
                   📋 <b>Paragraph checklist:</b> 1) Hook + opinion. 2–4) One paragraph per reason: reason, example, “this shows that.” {plan.counter?.claim ? "5) Answer the other side. " : ""}Last) Restate your opinion in new words.
                 </div>
               )}
+              {step.id !== "proofread" && help <= 2 && (
+                <details className="tb-details" open={help === 1}>
+                  <summary className="small"><b>🌉 Transition word bank</b> (tap to add at your cursor)</summary>
+                  <TransitionBank onPick={insertWord} />
+                </details>
+              )}
               {step.id === "draft" && <p className="small muted">Start with your hook and opinion. One paragraph per reason. Keep writing. Fix mistakes later!</p>}
-              <textarea className="essay-box" value={text} spellCheck={false} autoCorrect="off" autoCapitalize="off" onChange={(e) => setText(e.target.value)} placeholder="Type your essay here…" />
+              <textarea ref={box} className="essay-box" value={text} spellCheck={false} autoCorrect="off" autoCapitalize="off" onChange={(e) => setText(e.target.value)} placeholder="Type your essay here…" />
               <div className="row small muted" style={{ marginTop: 6 }}>
                 <span>{words(text)} words</span>
                 <span>{a.paragraphs} paragraphs</span>
@@ -286,6 +315,7 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
                 </button>
               )}
               {step.id === "draft" && words(text) < 60 && <span className="small muted"> Keep going: at least 60 words.</span>}
+              {((step.id === "draft" && help <= 2) || step.id === "revise") && words(text) > 30 && <StructureScan text={text} />}
               {(step.id === "revise" || step.id === "proofread") && (
                 <div style={{ marginTop: 14 }}>
                   <h3>{step.id === "revise" ? "Revise checklist: fix it, then check it" : "CAPS check: read one sentence at a time"}</h3>

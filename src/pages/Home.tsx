@@ -11,7 +11,7 @@ import { STEPS } from "../data/process";
 import { dailyMission, lockMission, typingStats, weakestSkills } from "../lib/coach";
 import { missionIsDone, practiceToday, useStore } from "../lib/store";
 
-const ICON: Record<string, string> = { typing: "⌨️", drills: "🥋", write: "✍️", plan: "💡", mock: "🎯" };
+const ICON: Record<string, string> = { typing: "⌨️", drills: "🥋", write: "✍️", plan: "💡", mock: "🎯", lesson: "🎓" };
 
 export default function Home() {
   const s = useStore();
