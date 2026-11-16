@@ -34,7 +34,7 @@ export default function World3D({
   const [ready, setReady] = useState(false);
   const lv = level(s.xp);
   const e = s.equipped;
-  const key = [lv, e.hat, e.cape, e.pet, e.gear, e.realm, layout, mood].join("|");
+  const key = [lv, e.hat, e.cape, e.pet, e.gear, e.realm, e.car, layout, mood].join("|");
 
   useEffect(() => {
     const canvas = ref.current;
@@ -61,6 +61,7 @@ export default function World3D({
           cape: CAPE_COLOR[e.cape ?? ""],
           pet: itemById(e.pet)?.icon,
           gear: e.gear,
+          car: e.car,
           layout,
           mood,
         }),

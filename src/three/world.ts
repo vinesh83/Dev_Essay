@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { makeEllie } from "./ellie";
+import { makeCar } from "./cars";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 // A real-time 3D world: floating islands for each realm, Dev's hero with his
 // gear, Ellie the Sheepadoodle, coins, clouds, sparkles, and the Crystal Academy far
@@ -17,6 +19,7 @@ export type WorldOpts = {
   cape?: string; // hex color
   pet?: string; // emoji
   gear?: string;
+  car?: string; // Garage car parked on the home island
   layout: "home" | "stage";
   mood: "idle" | "cheer";
 };
@@ -413,6 +416,22 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
   ellie.root.position.set(-0.8, 0, 0.85);
   ellie.root.rotation.y = 0.35;
   home.add(ellie.root);
+
+  // Dev's car from the Garage, parked beside him with shiny reflections.
+  if (o.car) {
+    const car = makeCar(o.car);
+    const pm = new THREE.PMREMGenerator(renderer);
+    const env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    pm.dispose();
+    car.root.traverse((x) => {
+      const m = x as THREE.Mesh;
+      if (m.isMesh) ([] as THREE.Material[]).concat(m.material).forEach((mm) => ((mm as THREE.MeshStandardMaterial).envMap = env));
+    });
+    car.root.scale.setScalar(0.31);
+    car.root.position.set(-1.6, 0, -0.35);
+    car.root.rotation.y = -1.15;
+    home.add(car.root);
+  }
 
   // Pet orb.
   let pet: THREE.Sprite | null = null;

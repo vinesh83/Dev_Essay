@@ -3,12 +3,15 @@ import ChestModal, { ChestIcon } from "./components/ChestModal";
 import MusicControl from "./components/MusicControl";
 import PracticeRing from "./components/PracticeRing";
 import { music } from "./lib/music";
+import { coinMultiplier } from "./data/season";
+import { setCoinMultiplier } from "./lib/store";
 import { Toaster, toast } from "./components/Toast";
 import { isCounting, usePracticeClock } from "./lib/session";
 import { level, practiceToday, useStore, xpForLevel } from "./lib/store";
 import Collection from "./pages/Collection";
 import Diagnostic from "./pages/Diagnostic";
 import Drills from "./pages/Drills";
+import Garage from "./pages/Garage";
 import Home from "./pages/Home";
 import Lessons from "./pages/Lessons";
 import Progress from "./pages/Progress";
@@ -16,7 +19,9 @@ import Shop from "./pages/Shop";
 import Typing from "./pages/Typing";
 import Write from "./pages/Write";
 
-export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic" | "lessons";
+setCoinMultiplier(coinMultiplier);
+
+export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic" | "lessons" | "garage";
 
 const NAV: [Route, string, string][] = [
   ["home", "🏠", "Home"],
@@ -26,6 +31,7 @@ const NAV: [Route, string, string][] = [
   ["write", "✍️", "Write"],
   ["cards", "🃏", "Cards"],
   ["shop", "🛒", "Shop"],
+  ["garage", "🏎️", "Garage"],
   ["progress", "📈", "Parents"],
 ];
 
@@ -124,6 +130,7 @@ export default function App() {
         {route === "shop" && <Shop />}
         {route === "cards" && <Collection />}
         {route === "diagnostic" && <Diagnostic />}
+        {route === "garage" && <Garage />}
         {route === "lessons" && <Lessons key={arg ?? "hub"} id={arg} />}
       </main>
       {chestOpen && <ChestModal onClose={() => setChestOpen(false)} />}

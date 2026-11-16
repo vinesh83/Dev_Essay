@@ -4,6 +4,7 @@ import { ChestIcon } from "../components/ChestModal";
 import Hero from "../components/Hero";
 import JourneyMap from "../components/JourneyMap";
 import PracticeRing from "../components/PracticeRing";
+import QuestCalendar from "../components/QuestCalendar";
 import Scene from "../components/Scene";
 import { CARDS } from "../data/cards";
 import { SKILLS } from "../data/drills";
@@ -97,6 +98,8 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <QuestCalendar />
 
       <div className="card">
         <h2>🗺️ Your Journey</h2>

@@ -1,3 +1,4 @@
+import { go } from "../App";
 import Hero from "../components/Hero";
 import Scene from "../components/Scene";
 import { toast } from "../components/Toast";
@@ -37,6 +38,7 @@ export default function Shop() {
               You have <b>🪙 {s.coins} coins</b>. Earn more from drills (5 each), typing levels (up to 20), essay steps (5 each), essays (up to 40), and mock tests (up to 70).
             </p>
             <p className="small muted">Tip: The rarest items need high essay scores to afford. Write well, get rich!</p>
+            <button className="btn" onClick={() => go("garage")}>🏎️ Visit the Garage: supercars!</button>
           </div>
         </div>
       </div>
