@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import HandGuide, { describeReach, homeKeyFor } from "../components/HandGuide";
 import TypingDrill, { type TypingResult } from "../components/TypingDrill";
 import { toast, toastBadges } from "../components/Toast";
@@ -72,6 +72,22 @@ export const CAPS_LINES = [
 
 const LETTER_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 
+function linesFor(mode: Mode): string[] {
+  return (
+      mode.kind === "level"
+        ? TYPING_LEVELS.find((l) => l.id === mode.id)!.lines
+        : mode.kind === "weak"
+          ? weakLines(mode.keys)
+          : mode.kind === "letter"
+            ? mode.ch !== mode.ch.toLowerCase()
+              ? capLines(mode.ch)
+              : letterLines(mode.ch)
+            : mode.kind === "caps"
+              ? [...CAPS_LINES].sort(() => Math.random() - 0.5).slice(0, 5)
+              : [TYPING_TEST_TEXT, TYPING_TEST_TEXT]
+  );
+}
+
 type Mode = { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean } | { kind: "caps"; watching: boolean };
 
 export default function Typing() {
@@ -80,6 +96,10 @@ export default function Typing() {
   const [result, setResult] = useState<(TypingResult & { label: string; passed?: boolean }) | null>(null);
   const [run, setRun] = useState(0);
   const [capsOn, setCapsOn] = useState(false);
+  // Pick the practice lines once per run. Re-rendering (the header timer
+  // ticks every few seconds, rewards update coins) must never reshuffle them.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const lines = useMemo(() => (mode ? linesFor(mode) : []), [run, mode]);
   const cur = currentTypingLevel(s);
   const weak = weakKeys(s);
 
@@ -177,18 +197,7 @@ export default function Typing() {
   }
 
   if (mode && !result) {
-    const lines =
-      mode.kind === "level"
-        ? TYPING_LEVELS.find((l) => l.id === mode.id)!.lines
-        : mode.kind === "weak"
-          ? weakLines(mode.keys)
-          : mode.kind === "letter"
-            ? mode.ch !== mode.ch.toLowerCase()
-              ? capLines(mode.ch)
-              : letterLines(mode.ch)
-            : mode.kind === "caps"
-              ? [...CAPS_LINES].sort(() => Math.random() - 0.5).slice(0, 5)
-              : [TYPING_TEST_TEXT, TYPING_TEST_TEXT];
+
     const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : mode.kind === "caps" ? "Every capital: hold Shift on the other side, press the letter, let go of both." : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
     return (
       <div className="card">
