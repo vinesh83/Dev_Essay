@@ -20,11 +20,18 @@ export type RubricScore = {
   note?: string;
 };
 
+export type Idea = { text: string; why?: string; example?: boolean; matters?: boolean };
+
 export type Plan = {
   opinion: string;
-  reasons: { reason: string; example: string }[];
+  reasons: { reason: string; example: string; kind?: string; explain?: string }[];
   hook: string;
+  hookKind?: string;
   ending: string;
+  pros?: Idea[]; // reasons for sides[0]
+  cons?: Idea[]; // reasons for sides[1]
+  side?: 0 | 1;
+  counter?: { claim: string; answer: string };
 };
 
 export type Essay = {
@@ -68,6 +75,8 @@ export type State = {
   goalRewardDay: number; // last day the 30-minute chest was given
   chests: { id: string; tier: ChestTier; reason: string }[]; // unopened
   collection: Record<string, number>; // card id -> copies
+  helpOverride?: 0 | 1 | 2 | 3; // 0 or missing = automatic training wheels
+  plansDoneComplete?: number; // complete plans from Brainstorm Sprints
 };
 
 export type ChestTier = "wood" | "silver" | "gold";

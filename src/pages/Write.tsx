@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { go } from "../App";
 import Results from "../components/Results";
+import { BrainstormStep, Coach, OutlineStep, ParagraphDraft, ScratchPlanner, SideStep } from "../components/Thinking";
 import { toast, toastBadges } from "../components/Toast";
 import { PROMPTS, promptById, type Prompt } from "../data/prompts";
 import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } from "../data/process";
 import { analyze } from "../lib/analyze";
 import { nextPrompt } from "../lib/coach";
 import { gradeEssay } from "../lib/grade";
+import { HELP_INFO, helpLevel, planComplete, toNextLevel } from "../lib/scaffold";
 import { addXp, checkBadges, getState, giveChest, markMission, uid, update, type Plan, type RubricScore } from "../lib/store";
 
 export type WriteMode = "practice" | "plan" | "mock" | "diagnostic";
 
 const STEP_COINS = 5;
-const emptyPlan = (): Plan => ({ opinion: "", hook: "", ending: "", reasons: [0, 1, 2].map(() => ({ reason: "", example: "" })) });
+const emptyPlan = (): Plan => ({ opinion: "", hook: "", ending: "", reasons: [0, 1, 2].map(() => ({ reason: "", example: "", explain: "" })), pros: [], cons: [] });
 
 function useClock(start: number | null) {
   const [now, setNow] = useState(Date.now());
@@ -104,9 +106,10 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
   const elapsed = useClock(start);
   const [highlights, setHighlights] = useState<number[]>([]);
   const [answers, setAnswers] = useState<(number | null)[]>(UNPACK_QUESTIONS.map(() => null));
-  const [side, setSide] = useState("");
-  const [ideas, setIdeas] = useState("");
+  const [help] = useState(() => helpLevel(getState()));
+  const [toNext] = useState(() => toNextLevel(getState()));
   const [plan, setPlan] = useState<Plan>(emptyPlan);
+  const [paras, setParas] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [hints, setHints] = useState(true);
@@ -124,7 +127,10 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
   };
 
   const finishPlan = () => {
-    update((s) => void (s.plansDone += 1));
+    update((s) => {
+      s.plansDone += 1;
+      if (planComplete(plan)) s.plansDoneComplete = (s.plansDoneComplete ?? 0) + 1;
+    });
     addXp(15);
     if (markMission("plan")) toast("🎉 Daily quest complete! +25 bonus coins");
     toastBadges(checkBadges());
@@ -152,8 +158,7 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
   if (result) return <Results score={result.score} coins={result.coins} steps={done} onAgain={onAgain} />;
 
   const qWords = prompt.question.split(" ");
-  const ideaLines = ideas.split("\n").filter((l) => l.trim());
-  const planReady = plan.opinion.trim() && plan.reasons.every((r) => r.reason.trim()) && plan.hook.trim();
+  const hi = HELP_INFO[help];
   const a = analyze(text);
 
   return (
@@ -173,6 +178,10 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
           <span className="spacer" />
           <span className="timer">{mmss(elapsed)}</span>
         </div>
+        <div className="help-badge small" title={hi.desc}>
+          {hi.icon} <b>{hi.name}</b>: {hi.desc}
+          {toNext !== null && <span className="muted"> {toNext} more complete plan{toNext === 1 ? "" : "s"} to level up your planning.</span>}
+        </div>
       </div>
 
       <div className="writer">
@@ -184,6 +193,11 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
 
           {step.id === "unpack" && (
             <>
+              {help === 1 && (
+                <Coach demo={<p>In “Should recess be longer, even if the school day has to be longer too?” the key words are <b>Should</b>, <b>recess</b>, <b>longer</b>, and <b>school day longer</b>. It asks me to pick yes or no and prove it.</p>}>
+                  Before you plan, find out exactly what the prompt wants. Tap the <b>key words</b>: the topic and the question word (should, which, why). Then answer the two questions below.
+                </Coach>
+              )}
               <p><b>Tap the key words</b> that tell you what to do:</p>
               <p style={{ fontSize: "1.15rem", lineHeight: 2 }}>
                 {qWords.map((w, i) => (
@@ -219,82 +233,43 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
             </>
           )}
 
-          {step.id === "side" && (
-            <>
-              <p>{prompt.question}</p>
-              <p><b>Which side can you explain with the best reasons and examples?</b></p>
-              {prompt.sides.map((sd) => (
-                <button key={sd} className={`choice ${side === sd ? "right" : ""}`} onClick={() => setSide(sd)}>
-                  {sd}
-                </button>
-              ))}
-              <p className="small muted">Tip: There's no wrong side! Pick the one you have the most to say about.</p>
-              <button className="btn" disabled={!side} onClick={() => complete("side")}>Lock it in →</button>
-            </>
-          )}
+          {step.id === "brainstorm" && <BrainstormStep prompt={prompt} help={help} plan={plan} setPlan={setPlan} onDone={() => complete("brainstorm")} />}
 
-          {step.id === "brainstorm" && (
-            <>
-              <p>
-                Your side: <b>{side}</b>. List every reason you can think of, one per line. Don't judge yet!
-              </p>
-              <p className="small muted">Idea sparks: How does it help kids? Families? Health? Learning? Safety? Money? Fun? The future?</p>
-              <textarea className="field" style={{ minHeight: 180 }} value={ideas} spellCheck={false} onChange={(e) => setIdeas(e.target.value)} placeholder={"It helps kids learn\nIt's healthy\nFriends work together\n..."} />
-              <p className="small">{ideaLines.length} ideas {ideaLines.length >= 5 ? "🔥 Great brainstorm!" : "(aim for 5+)"}</p>
-              <button className="btn" disabled={ideaLines.length < 3} onClick={() => complete("brainstorm")}>Pick my best 3 →</button>
-            </>
-          )}
+          {step.id === "side" && <SideStep prompt={prompt} help={help} plan={plan} setPlan={setPlan} onDone={() => complete("side")} />}
 
           {step.id === "plan" && (
-            <>
-              <div className="burger">
-                <div className="layer bun">
-                  🍞 Top bun: Hook + Opinion
-                  <input className="field" style={{ marginTop: 6 }} placeholder="Hook: a question, surprising fact, or quick scene" value={plan.hook} onChange={(e) => setPlan({ ...plan, hook: e.target.value })} />
-                  <input className="field" style={{ marginTop: 6 }} placeholder="Opinion: I believe ___ because ___, ___, and ___." value={plan.opinion} onChange={(e) => setPlan({ ...plan, opinion: e.target.value })} />
-                </div>
-                {plan.reasons.map((r, i) => (
-                  <div key={i} className={`layer ${i === 1 ? "lettuce" : "patty"}`}>
-                    {i === 1 ? "🥬" : "🍖"} Reason {i + 1}
-                    <select className="field" style={{ marginTop: 6 }} value="" onChange={(e) => e.target.value && setPlan({ ...plan, reasons: plan.reasons.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)) })}>
-                      <option value="">Pick from your brainstorm…</option>
-                      {ideaLines.map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
-                    </select>
-                    <input className="field" style={{ marginTop: 6 }} placeholder="Reason" value={r.reason} onChange={(e) => setPlan({ ...plan, reasons: plan.reasons.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)) })} />
-                    <input className="field" style={{ marginTop: 6 }} placeholder={prompt.passage ? "Evidence from the article (paragraph #)" : "Example: a fact, a time it happened to you, or a what-if"} value={r.example} onChange={(e) => setPlan({ ...plan, reasons: plan.reasons.map((x, j) => (j === i ? { ...x, example: e.target.value } : x)) })} />
-                  </div>
-                ))}
-                <div className="layer bun">
-                  🍞 Bottom bun: Ending
-                  <input className="field" style={{ marginTop: 6 }} placeholder="Restate your opinion + a final thought" value={plan.ending} onChange={(e) => setPlan({ ...plan, ending: e.target.value })} />
-                </div>
-              </div>
-              <div className="row" style={{ marginTop: 12 }}>
-                {mode === "plan" ? (
-                  <>
-                    <button
-                      className="btn good"
-                      disabled={!planReady}
-                      onClick={() => {
-                        complete("plan");
-                        finishPlan();
-                      }}
-                    >
-                      Finish plan ✅
-                    </button>
-                  </>
-                ) : (
-                  <button className="btn" disabled={!planReady} onClick={() => complete("plan")}>Start writing →</button>
-                )}
-                {!planReady && <span className="small muted">Fill in the hook, opinion, and 3 reasons.</span>}
-              </div>
-            </>
+            <OutlineStep
+              prompt={prompt}
+              help={help}
+              plan={plan}
+              setPlan={setPlan}
+              finishLabel={mode === "plan" ? "Finish plan ✅" : "Start writing →"}
+              onDone={() => {
+                complete("plan");
+                if (mode === "plan") finishPlan();
+              }}
+            />
           )}
 
-          {(step.id === "draft" || step.id === "revise" || step.id === "proofread") && (
+          {step.id === "draft" && help === 1 && !text && (
+            <ParagraphDraft
+              plan={plan}
+              paras={paras}
+              setParas={setParas}
+              onDone={() => {
+                setText(paras.filter((x) => x.trim()).map((x) => x.trim()).join("\n\n"));
+                complete("draft");
+              }}
+            />
+          )}
+
+          {((step.id === "draft" && !(help === 1 && !text)) || step.id === "revise" || step.id === "proofread") && (
             <>
+              {step.id === "draft" && help === 2 && (
+                <div className="lesson small">
+                  📋 <b>Paragraph checklist:</b> 1) Hook + opinion. 2–4) One paragraph per reason: reason, example, “this shows that.” {plan.counter?.claim ? "5) Answer the other side. " : ""}Last) Restate your opinion in new words.
+                </div>
+              )}
               {step.id === "draft" && <p className="small muted">Start with your hook and opinion. One paragraph per reason. Keep writing. Fix mistakes later!</p>}
               <textarea className="essay-box" value={text} spellCheck={false} autoCorrect="off" autoCapitalize="off" onChange={(e) => setText(e.target.value)} placeholder="Type your essay here…" />
               <div className="row small muted" style={{ marginTop: 6 }}>
@@ -344,14 +319,15 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
               </details>
             )}
           </div>
-          {stepIdx >= 4 && (
+          {stepIdx >= 4 && !(help === 1 && step.id === "draft" && !text) && (
             <div className="card">
               <h3>🍔 Your plan</h3>
               <p className="small"><b>Hook:</b> {plan.hook}</p>
               <p className="small"><b>Opinion:</b> {plan.opinion}</p>
               {plan.reasons.map((r, i) => (
-                <p key={i} className="small"><b>Reason {i + 1}:</b> {r.reason}{r.example && <> — <i>{r.example}</i></>}</p>
+                <p key={i} className="small"><b>Reason {i + 1}:</b> {r.reason}{r.example && <> — <i>{r.example}</i></>}{r.explain && <> — {r.explain}</>}</p>
               ))}
+              {plan.counter?.claim && <p className="small"><b>Other side:</b> {plan.counter.claim} {plan.counter.answer}</p>}
               <p className="small"><b>Ending:</b> {plan.ending}</p>
             </div>
           )}
@@ -499,7 +475,11 @@ function MockTest({ prompt, mode, onFinish, onAgain }: { prompt: Prompt; mode: "
           </p>
           <details style={{ marginBottom: 10 }} open>
             <summary>📄 Scratch paper (not scored)</summary>
-            <textarea spellCheck={false} value={scratch} onChange={(e) => setScratch(e.target.value)} style={{ minHeight: 120 }} placeholder="Plan here: opinion, 3 reasons, examples…" />
+            {mode === "diagnostic" || helpLevel(getState()) < 3 ? (
+              <ScratchPlanner prompt={prompt} coached={mode === "diagnostic" || helpLevel(getState()) === 1} />
+            ) : (
+              <textarea spellCheck={false} value={scratch} onChange={(e) => setScratch(e.target.value)} style={{ minHeight: 120 }} placeholder="Plan here: both sides, your opinion, 3 reasons, examples…" />
+            )}
           </details>
           <textarea
             spellCheck={false}

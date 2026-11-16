@@ -5,10 +5,10 @@ export type StepId = "unpack" | "side" | "brainstorm" | "plan" | "draft" | "revi
 
 export const STEPS: { id: StepId; name: string; icon: string; minutes: number; goal: string }[] = [
   { id: "unpack", name: "Unpack the Prompt", icon: "🔍", minutes: 5, goal: "Find what the prompt asks you to do and pick out its key words." },
-  { id: "side", name: "Pick a Side", icon: "⚖️", minutes: 2, goal: "Choose the side you can explain best, not the one that sounds smartest." },
-  { id: "brainstorm", name: "Brainstorm", icon: "💡", minutes: 8, goal: "List as many reasons as you can, then circle your best three." },
-  { id: "plan", name: "Plan the Burger", icon: "🍔", minutes: 5, goal: "Hook + opinion, three reasons with examples, then the ending." },
-  { id: "draft", name: "Write the Draft", icon: "✍️", minutes: 45, goal: "Turn the plan into paragraphs. Keep going. Fix later." },
+  { id: "brainstorm", name: "Brainstorm Both Sides", icon: "💡", minutes: 8, goal: "List reasons FOR and reasons AGAINST. Then test each one: can you prove it, and does it matter?" },
+  { id: "side", name: "Pick a Side", icon: "⚖️", minutes: 2, goal: "Choose the side with the strongest reasons, the one you can prove best." },
+  { id: "plan", name: "Plan the Burger", icon: "🍔", minutes: 7, goal: "Hook + opinion, three reasons each with an example and \"this shows that\", then the ending." },
+  { id: "draft", name: "Write the Draft", icon: "✍️", minutes: 43, goal: "Turn the plan into paragraphs. Keep going. Fix later." },
   { id: "revise", name: "Revise", icon: "🔧", minutes: 15, goal: "Make the ideas stronger: clearer opinion, better examples, stronger words." },
   { id: "proofread", name: "Proofread (CAPS)", icon: "🔎", minutes: 10, goal: "Capitals, Apostrophes, Punctuation, Spelling. Read it slowly, one sentence at a time." },
 ];

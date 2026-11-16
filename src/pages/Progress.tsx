@@ -6,6 +6,7 @@ import { promptById } from "../data/prompts";
 import { STEPS } from "../data/process";
 import { areaAverages, skillMastery, typingStats } from "../lib/coach";
 import { isAiEnabled } from "../lib/grade";
+import { HELP_INFO, autoHelp, completePlans } from "../lib/scaffold";
 import { exportData, importData, resetAll, today, update, useStore, type Essay } from "../lib/store";
 
 function LineChart({ points, max, target, label }: { points: number[]; max: number; target?: number; label: string }) {
@@ -193,6 +194,16 @@ export default function Progress() {
                 <option key={m} value={m}>{m} minutes</option>
               ))}
             </select>
+          </label>
+          <label>
+            Planning help (training wheels)
+            <select className="field" value={s.helpOverride ?? 0} onChange={(e) => update((st) => void (st.helpOverride = Number(e.target.value) as 0 | 1 | 2 | 3))}>
+              <option value={0}>Automatic: now {HELP_INFO[autoHelp(s)].name} ({completePlans(s)} complete plans)</option>
+              {([1, 2, 3] as const).map((h) => (
+                <option key={h} value={h}>Always {HELP_INFO[h].icon} {HELP_INFO[h].name}</option>
+              ))}
+            </select>
+            <span className="small muted">Automatic starts with full help and fades after 3 and 6 complete plans.</span>
           </label>
         </div>
         <div className="row" style={{ marginTop: 14 }}>
