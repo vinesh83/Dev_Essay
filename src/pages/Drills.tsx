@@ -3,7 +3,7 @@ import { go } from "../App";
 import { toast, toastBadges } from "../components/Toast";
 import { SKILLS, type Drill, type SkillId } from "../data/drills";
 import { pickDrills, recordDrill, skillMastery } from "../lib/coach";
-import { checkBadges, getState, markMission, useStore } from "../lib/store";
+import { checkBadges, getState, giveChest, markMission, useStore } from "../lib/store";
 
 const norm = (t: string) => t.trim().replace(/\s+/g, " ").replace(/[’‘]/g, "'");
 
@@ -37,6 +37,7 @@ export default function Drills({ focus }: { focus?: string }) {
     setVerdict(null);
     if (i + 1 >= all.length) {
       if (markMission("drills")) toast("🎉 Daily quest complete! +25 bonus coins");
+      if (score >= 4) giveChest("wood", "a strong drill round");
       toastBadges(checkBadges());
     }
   };

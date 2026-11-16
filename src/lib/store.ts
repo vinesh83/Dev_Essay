@@ -63,7 +63,14 @@ export type State = {
   testDate: string; // YYYY-MM-DD
   missionDone: { day: number; ids: string[] };
   missionPlan: { day: number; tasks: { id: string; title: string; detail: string; route: string; minutes: number }[] };
+  practice: Record<string, number>; // day number -> seconds of active practice
+  dailyGoalMin: number;
+  goalRewardDay: number; // last day the 30-minute chest was given
+  chests: { id: string; tier: ChestTier; reason: string }[]; // unopened
+  collection: Record<string, number>; // card id -> copies
 };
+
+export type ChestTier = "wood" | "silver" | "gold";
 
 const KEY = "dev-writing-quest-v1";
 
@@ -85,6 +92,11 @@ const fresh = (): State => ({
   testDate: "2027-01-30",
   missionDone: { day: 0, ids: [] },
   missionPlan: { day: 0, tasks: [] },
+  practice: {},
+  dailyGoalMin: 30,
+  goalRewardDay: 0,
+  chests: [],
+  collection: {},
 });
 
 function load(): State {
@@ -228,3 +240,9 @@ export function resetAll() {
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+export function giveChest(tier: ChestTier, reason: string) {
+  update((s) => void s.chests.push({ id: uid(), tier, reason }));
+}
+
+export const practiceToday = (s: State) => s.practice[String(today())] ?? 0;

@@ -6,7 +6,7 @@ import { promptById } from "../data/prompts";
 import { STEPS } from "../data/process";
 import { areaAverages, skillMastery, typingStats } from "../lib/coach";
 import { isAiEnabled } from "../lib/grade";
-import { exportData, importData, resetAll, update, useStore, type Essay } from "../lib/store";
+import { exportData, importData, resetAll, today, update, useStore, type Essay } from "../lib/store";
 
 function LineChart({ points, max, target, label }: { points: number[]; max: number; target?: number; label: string }) {
   const W = 520, H = 160, P = 28;
@@ -54,6 +54,9 @@ export default function Progress() {
   const fullProcess = withSteps.filter((e) => e.steps!.length === STEPS.length).length;
   const typingPoints = [...s.typing.tests.map((x) => x.wpm)];
   const totalMinutes = Math.round(s.essays.reduce((a, e) => a + e.seconds, 0) / 60);
+  const d0 = today();
+  const days14 = Array.from({ length: 14 }, (_, i) => d0 - 13 + i).map((d) => ({ d, min: Math.round((s.practice[String(d)] ?? 0) / 60) }));
+  const goalDays = days14.filter((x) => x.min >= s.dailyGoalMin).length;
 
   return (
     <>
@@ -67,6 +70,24 @@ export default function Progress() {
           <div><div className="muted small">Full 7-step process</div><h2>{withSteps.length ? `${fullProcess}/${withSteps.length}` : "–"}</h2></div>
           <div><div className="muted small">Writing time</div><h2>{totalMinutes} min</h2></div>
           <div><div className="muted small">Grading</div><h2 style={{ fontSize: "1rem", marginTop: 8 }}>{ai === null ? "Checking…" : ai ? "✅ AI rubric grading on" : "⚠️ Built-in estimate (add API key)"}</h2></div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>Daily practice (last 14 days)</h2>
+        <p className="muted small">Goal: {s.dailyGoalMin} minutes a day. Met on {goalDays} of 14 days. Only active practice counts. The clock pauses after 60 seconds of no typing or clicking.</p>
+        <div className="minutes-chart" role="img" aria-label={`Minutes practiced per day. Goal met on ${goalDays} of the last 14 days.`}>
+          {days14.map(({ d, min }) => {
+            const date = new Date(d * 86400000);
+            const h = Math.min(100, (min / Math.max(s.dailyGoalMin, 1)) * 80);
+            return (
+              <div key={d} className="mc-col" title={`${min} min`}>
+                <span className="small">{min || ""}</span>
+                <div className={`mc-bar ${min >= s.dailyGoalMin ? "met" : ""}`} style={{ height: `${Math.max(h, 2)}%` }} />
+                <span className="small muted">{date.toLocaleDateString(undefined, { weekday: "narrow", timeZone: "UTC" })}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -164,6 +185,14 @@ export default function Progress() {
           <label>
             Test date
             <input className="field" type="date" value={s.testDate} onChange={(e) => update((st) => void (st.testDate = e.target.value))} />
+          </label>
+          <label>
+            Daily practice goal (minutes)
+            <select className="field" value={s.dailyGoalMin} onChange={(e) => update((st) => void (st.dailyGoalMin = Number(e.target.value)))}>
+              {[15, 20, 30, 45, 60].map((m) => (
+                <option key={m} value={m}>{m} minutes</option>
+              ))}
+            </select>
           </label>
         </div>
         <div className="row" style={{ marginTop: 14 }}>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import HandGuide from "./HandGuide";
 
 // Stop-on-error typing drill. The cursor waits until the right key is
 // pressed, which trains accuracy before speed. A color-coded keyboard shows
@@ -19,7 +20,6 @@ assign("0-=p[]\\;'/", "f-rp", "right pinky");
 assign(" ", "f-th", "thumb");
 
 const LEFT = new Set("`12345qwertasdfgzxcvb");
-const ROWS = ["qwertyuiop", "asdfghjkl;'", "zxcvbnm,./"];
 const SHIFTED: Record<string, string> = { "?": "/", ":": ";", '"': "'", "!": "1", "<": ",", ">": "." };
 
 export function fingerFor(ch: string): string {
@@ -108,7 +108,6 @@ export default function TypingDrill({
   };
 
   const nextBase = next ? (SHIFTED[next] ?? next).toLowerCase() : "";
-  const needShift = next && next !== nextBase && next !== " ";
 
   return (
     <div onClick={() => inputRef.current?.focus()}>
@@ -138,24 +137,7 @@ export default function TypingDrill({
       <p className="small" style={{ marginTop: 10, minHeight: 24 }}>
         {next ? <>👉 {fingerFor(next)}</> : "Nice!"} {errAt !== null && <b style={{ color: "var(--bad)" }}> Oops, try that key again.</b>}
       </p>
-      {showKeyboard && (
-        <div className="kb" aria-hidden>
-          {ROWS.map((row, r) => (
-            <div className="kb-row" key={r} style={{ paddingLeft: r * 18 }}>
-              {r === 2 && <div className={`key wide f-lp ${needShift && !LEFT.has(nextBase) ? "next" : ""}`}>shift</div>}
-              {[...row].map((k) => (
-                <div key={k} className={`key ${FINGER[k]?.[0] ?? ""} ${k === nextBase ? "next" : ""} ${k === "f" || k === "j" ? "bump" : ""}`}>
-                  {k}
-                </div>
-              ))}
-              {r === 2 && <div className={`key wide f-rp ${needShift && LEFT.has(nextBase) ? "next" : ""}`}>shift</div>}
-            </div>
-          ))}
-          <div className="kb-row">
-            <div className={`key space f-th ${next === " " ? "next" : ""}`}>space</div>
-          </div>
-        </div>
-      )}
+      {showKeyboard && next && <HandGuide target={/[a-zA-Z]/.test(next) ? next : nextBase} size={0.9} />}
       <p className="small muted center" style={{ marginTop: 10 }}>
         Click here if typing stops working. Keep your eyes on the screen, not your hands!
       </p>

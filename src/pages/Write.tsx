@@ -7,7 +7,7 @@ import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } fro
 import { analyze } from "../lib/analyze";
 import { nextPrompt } from "../lib/coach";
 import { gradeEssay } from "../lib/grade";
-import { addXp, checkBadges, getState, markMission, uid, update, type Plan, type RubricScore } from "../lib/store";
+import { addXp, checkBadges, getState, giveChest, markMission, uid, update, type Plan, type RubricScore } from "../lib/store";
 
 export type WriteMode = "practice" | "plan" | "mock" | "diagnostic";
 
@@ -143,6 +143,7 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
     const bonus = [markMission("plan"), markMission("write")].some(Boolean);
     if (bonus) toast("🎉 Daily quest complete! +25 bonus coins");
     toastBadges(checkBadges());
+    giveChest(score.total >= 70 ? "silver" : "wood", `finishing an essay (${score.total} points)`);
     setDone(allDone);
     setResult({ score, coins: coins + STEP_COINS });
     setGrading(false);
@@ -422,6 +423,7 @@ function MockTest({ prompt, mode, onFinish, onAgain }: { prompt: Prompt; mode: "
       });
       addXp(coins);
       if (mode === "mock" && markMission("mock")) toast("🎉 Daily quest complete! +25 bonus coins");
+      giveChest(mode === "mock" ? "gold" : "silver", mode === "mock" ? "finishing a 90-minute mock test" : "finishing your starting check");
       toastBadges(checkBadges());
       setResult({ score, coins });
       setStage("done");

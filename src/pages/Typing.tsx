@@ -1,12 +1,13 @@
 import { useState } from "react";
+import HandGuide, { describeReach, homeKeyFor } from "../components/HandGuide";
 import TypingDrill, { type TypingResult } from "../components/TypingDrill";
 import { toast, toastBadges } from "../components/Toast";
 import { TYPING_LEVELS, TYPING_TARGET_ACCURACY, TYPING_TARGET_WPM, TYPING_TEST_TEXT } from "../data/typing";
 import { currentTypingLevel, levelPassed } from "../lib/coach";
-import { addXp, checkBadges, markMission, update, useStore, type State } from "../lib/store";
+import { addXp, checkBadges, getState, giveChest, markMission, update, useStore, type State } from "../lib/store";
 
 const WORDS =
-  "because believe opinion reason example important people should would could think friend school reading writing learn healthy garden recess students teacher family quiet every however finally another conclusion strong evidence explain better world jump quick zebra puzzle oxygen vexing wax quiz jazz kayak yellow happy lucky village vivid brave brown dozen fuzzy exact next box mix wizard frozen".split(
+  `because believe opinion reason example important people should would could think friend school reading writing learn healthy garden recess students teacher family quiet every however finally another conclusion strong evidence explain better world jump quick zebra puzzle oxygen vexing wax quiz jazz kayak yellow happy lucky village vivid brave brown dozen fuzzy exact next box mix wizard frozen queen quack squid equal fox six taxi relax zoo zip buzz lazy size prize jam joke juice enjoy king kite bake keep van very give move wave vote yes yard play story yummy`.split(
     " ",
   );
 
@@ -27,7 +28,23 @@ function weakLines(keys: string[]): string[] {
   return Array.from({ length: 4 }, () => Array.from({ length: 6 }, pick).join(" "));
 }
 
-type Mode = { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" };
+/** Lines that drill one letter: home-key bounces, then real words. */
+export function letterLines(ch: string): string[] {
+  const h = homeKeyFor(ch) || ch;
+  const bounce = ch === h ? `${h}${h}${h} ` : `${h}${ch}${h} `;
+  const words = WORDS.filter((w) => w.includes(ch));
+  const pick = () => words[Math.floor(Math.random() * words.length)] ?? ch;
+  return [
+    bounce.repeat(5).trim(),
+    `${ch}${ch} ${h}${ch} ${ch}${h} `.repeat(3).trim(),
+    Array.from({ length: 5 }, pick).join(" "),
+    Array.from({ length: 5 }, pick).join(" "),
+  ];
+}
+
+const LETTER_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
+type Mode = { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean };
 
 export default function Typing() {
   const s = useStore();
@@ -57,12 +74,20 @@ export default function Typing() {
       });
       const lvl = TYPING_LEVELS.find((l) => l.id === id)!;
       const passed = r.acc >= 90 && (id < 7 || r.wpm >= 12);
+      const firstPass = passed && !getState().badges.includes(`lvl${id}`);
+      if (firstPass) {
+        update((st) => void st.badges.push(`lvl${id}`)); // private marker, not shown as a badge
+        giveChest("wood", `passing typing level ${id}`);
+      }
       addXp(passed ? 20 : 8, passed ? 20 : 8);
       setResult({ ...r, label: lvl.name, passed });
     } else if (mode.kind === "test") {
       update((st) => void st.typing.tests.push({ date: new Date().toISOString(), wpm: r.wpm, acc: r.acc }));
       addXp(15);
       setResult({ ...r, label: "1-minute speed test" });
+    } else if (mode.kind === "letter") {
+      addXp(10);
+      setResult({ ...r, label: `Letter Lab: ${mode.ch.toUpperCase()}` });
     } else {
       addXp(12);
       setResult({ ...r, label: `Weak keys: ${mode.keys.join(" ").toUpperCase()}` });
@@ -77,18 +102,38 @@ export default function Typing() {
     setRun((n) => n + 1);
   };
 
+  if (mode?.kind === "letter" && mode.watching && !result) {
+    return (
+      <div className="card">
+        <div className="row">
+          <h2 style={{ margin: 0 }}>🔤 Letter Lab: {mode.ch.toUpperCase()}</h2>
+          <span className="spacer" />
+          <button className="btn ghost" onClick={() => setMode(null)}>Back</button>
+        </div>
+        <p style={{ fontSize: "1.15rem", marginTop: 10 }}>{describeReach(mode.ch)}</p>
+        <HandGuide target={mode.ch} />
+        <p className="muted small center">Watch the glowing finger. Try the reach on your own keyboard 3 times, then practice.</p>
+        <div className="center">
+          <button className="btn big" onClick={() => start({ kind: "letter", ch: mode.ch, watching: false })}>I'm ready, let's practice ▶</button>
+        </div>
+      </div>
+    );
+  }
+
   if (mode && !result) {
     const lines =
       mode.kind === "level"
         ? TYPING_LEVELS.find((l) => l.id === mode.id)!.lines
         : mode.kind === "weak"
           ? weakLines(mode.keys)
-          : [TYPING_TEST_TEXT, TYPING_TEST_TEXT];
-    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
+          : mode.kind === "letter"
+            ? letterLines(mode.ch)
+            : [TYPING_TEST_TEXT, TYPING_TEST_TEXT];
+    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
     return (
       <div className="card">
         <div className="row">
-          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : "Weak-Key Training"}</h2>
+          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : "Weak-Key Training"}</h2>
           <span className="spacer" />
           <button className="btn ghost" onClick={() => setMode(null)}>
             Back
@@ -153,15 +198,44 @@ export default function Typing() {
         </div>
       </div>
       <div className="card">
+        <h2>🔤 Letter Lab</h2>
+        <p className="muted">Pick any letter. Animated hands show which finger presses it and how it reaches, then you practice just that letter. Colors show your accuracy on each key.</p>
+        <div className="letter-grid">
+          {LETTER_ROWS.map((row, r) => (
+            <div key={r} className="kb-row" style={{ paddingLeft: r * 22 }}>
+              {[...row].map((k) => {
+                const st = s.keyStats[k];
+                const n = st ? st.hits + st.misses : 0;
+                const acc = n ? st!.hits / n : null;
+                const cls = acc === null ? "" : acc >= 0.95 ? "lk-good" : acc >= 0.85 ? "lk-warn" : "lk-bad";
+                return (
+                  <button key={k} className={`letter-key ${cls}`} onClick={() => start({ kind: "letter", ch: k, watching: true })} title={acc === null ? "Not practiced yet" : `${Math.round(acc * 100)}% accurate`}>
+                    {k.toUpperCase()}
+                    {acc !== null && <small>{Math.round(acc * 100)}%</small>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
         <h2>Weak-Key Training</h2>
         {weak.length ? (
           <>
             <p>
               You miss these keys most: <b style={{ fontFamily: "var(--mono)", fontSize: "1.2rem" }}>{weak.join(" ").toUpperCase()}</b>. Practice words packed with them.
             </p>
-            <button className="btn" onClick={() => start({ kind: "weak", keys: weak })}>
-              Train weak keys
-            </button>
+            <div className="row">
+              <button className="btn" onClick={() => start({ kind: "weak", keys: weak })}>
+                Train weak keys
+              </button>
+              {weak.map((k) => (
+                <button key={k} className="btn ghost" onClick={() => start({ kind: "letter", ch: k, watching: true })}>
+                  Watch how: {k.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </>
         ) : (
           <p className="muted">Finish a few levels and the dojo will find the keys you miss most.</p>
