@@ -82,6 +82,8 @@ export type State = {
   claimed?: string[]; // Quest Calendar drops collected
   surpriseDay?: number; // last day the daily surprise was opened
   fingerChecks?: { day: number; ok: boolean }[]; // parent-watched finger checks
+  ores?: Partial<Record<"coal" | "iron" | "gold" | "diamond" | "emerald", number>>; // mined ore
+  oreNodes?: ("coal" | "iron" | "gold" | "diamond" | "emerald")[]; // ore blocks waiting on the island
 };
 
 export type ChestTier = "wood" | "silver" | "gold";
@@ -161,6 +163,9 @@ export const today = () => Math.floor((Date.now() - new Date().getTimezoneOffset
 
 /** Award XP and coins, and keep the daily streak going. */
 let coinMult = () => 1;
+let xpHook: (n: number) => void = () => {};
+/** Mining listens to XP awards to drop ore blocks. */
+export const setXpHook = (f: (n: number) => void) => (xpHook = f);
 /** The Quest Calendar sets this so festival weekends pay extra coins. */
 export const setCoinMultiplier = (f: () => number) => (coinMult = f);
 
@@ -175,6 +180,7 @@ export function addXp(n: number, coins = n) {
     }
   });
   checkBadges();
+  xpHook(n);
 }
 
 /** Mark a daily task done. Finishing every task pays a 25-coin bonus. */

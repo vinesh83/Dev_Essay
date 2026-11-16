@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { REALMS } from "../data/cards";
 import { CAPE_COLOR, itemById } from "../data/shop";
+import { mine } from "../lib/mining";
 import { level, type State } from "../lib/store";
 import type { World } from "../three/world";
 
@@ -32,6 +33,12 @@ export default function World3D({
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
+  const worldRef = useRef<World | null>(null);
+  const oreKey = (s.oreNodes ?? []).join(",");
+  useEffect(() => {
+    if (layout === "home") worldRef.current?.setOres(s.oreNodes ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oreKey]);
   const lv = level(s.xp);
   const e = s.equipped;
   const key = [lv, e.hat, e.cape, e.pet, e.gear, e.realm, e.car, layout, mood].join("|");
@@ -62,6 +69,8 @@ export default function World3D({
           pet: itemById(e.pet)?.icon,
           gear: e.gear,
           car: e.car,
+          ores: layout === "home" ? s.oreNodes ?? [] : [],
+          onMine: (i) => mine(i),
           layout,
           mood,
         }),
@@ -69,6 +78,7 @@ export default function World3D({
       .then((w) => {
         if (dead) return w.dispose();
         world = w;
+        worldRef.current = w;
         const fit = () => w.resize(canvas.clientWidth, canvas.clientHeight);
         fit();
         ro = new ResizeObserver(fit);

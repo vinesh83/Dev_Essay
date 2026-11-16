@@ -3,6 +3,7 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { makeEllie } from "./ellie";
 import { makeCar } from "./cars";
+import { oreBlock, shards, torch, voxelIsland, voxelTool, voxelTree, type Ore } from "./blocks";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 // A real-time 3D world: floating islands for each realm, Dev's hero with his
@@ -20,11 +21,13 @@ export type WorldOpts = {
   pet?: string; // emoji
   gear?: string;
   car?: string; // Garage car parked on the home island
+  ores?: Ore[]; // ore blocks waiting to be mined on the home island
+  onMine?: (index: number, ore: Ore) => void;
   layout: "home" | "stage";
   mood: "idle" | "cheer";
 };
 
-export type World = { resize: (w: number, h: number) => void; setActive: (on: boolean) => void; cheer: () => void; dispose: () => void };
+export type World = { resize: (w: number, h: number) => void; setActive: (on: boolean) => void; cheer: () => void; setOres: (ores: Ore[]) => void; dispose: () => void };
 
 const loader = new GLTFLoader();
 const cache = new Map<string, Promise<GLTF>>();
@@ -85,23 +88,6 @@ function emojiSprite(emoji: string) {
 /* ---------- procedural pieces ---------- */
 
 const std = (color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, flatShading: true, ...extra });
-
-function islandRock(radius: number, color: THREE.Color) {
-  const g = new THREE.ConeGeometry(radius, radius * 1.5, 7, 3);
-  const pos = g.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i);
-    if (y < radius * 0.7) {
-      pos.setX(i, pos.getX(i) * (0.85 + Math.random() * 0.3));
-      pos.setZ(i, pos.getZ(i) * (0.85 + Math.random() * 0.3));
-    }
-  }
-  g.computeVertexNormals();
-  const m = new THREE.Mesh(g, std(color.clone().multiplyScalar(0.55)));
-  m.rotation.x = Math.PI;
-  m.castShadow = true;
-  return m;
-}
 
 function castle(accent: string) {
   const g = new THREE.Group();
@@ -295,20 +281,14 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
     const d = i - o.current;
     const isl = new THREE.Group();
     const col = new THREE.Color(r.ground).lerp(new THREE.Color(r.accent), 0.2);
-    const grassCol = r.unlocked ? col : col.clone().lerp(new THREE.Color("#2a2550"), 0.6);
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.75, 0.45, 10), std(grassCol));
-    top.position.y = -0.225; // walkable surface at y = 0
-    top.receiveShadow = true;
-    top.castShadow = true;
-    const dirt = new THREE.Mesh(new THREE.CylinderGeometry(2.78, 2.5, 0.7, 10), std(new THREE.Color("#7a5236").lerp(grassCol, 0.15)));
-    dirt.position.y = -0.8;
-    dirt.castShadow = true;
-    isl.add(top, dirt);
-    const rock = islandRock(2.5, new THREE.Color("#6b5a7a").lerp(new THREE.Color(r.ground), 0.3));
-    rock.position.y = -1.15 - 1.85;
-    isl.add(rock);
+    isl.add(voxelIsland(col, r.unlocked, i + 1));
     if (r.unlocked) {
-      for (let k = 0; k < 5; k++) {
+      for (const [k, [tx, tz]] of ([[2.1, -1.6], [-2.3, -1.2]] as const).entries()) {
+        const tree = voxelTree(new THREE.Color(r.accent).lerp(new THREE.Color("#3f9b4a"), 0.6), 3 + k);
+        tree.position.set(tx, 0, tz);
+        isl.add(tree);
+      }
+      for (let k = 0; k < 3; k++) {
         const t = grass.scene.clone(true);
         normalize(t, 0.32);
         const a = k * 1.6 + i + 2.2;
@@ -404,7 +384,7 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
   }
   if (o.gear) {
     const arm = hero.getObjectByName("arm-right") ?? torso;
-    const gm = gearMesh(o.gear);
+    const gm = o.gear.startsWith("craft_") ? voxelTool(o.gear) : gearMesh(o.gear);
     gm.scale.setScalar((headW * 0.9) / heroScale);
     const aBox = new THREE.Box3().setFromObject(arm);
     gm.position.copy(arm.worldToLocal(new THREE.Vector3(aBox.min.x, aBox.min.y + 0.05, (aBox.min.z + aBox.max.z) / 2 + 0.05)));
@@ -416,6 +396,30 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
   ellie.root.position.set(-0.8, 0, 0.85);
   ellie.root.rotation.y = 0.35;
   home.add(ellie.root);
+
+  // Torches and minable ore blocks (block-world flavor).
+  const torches = ([[-2.4, 0.2], [1.0, 1.5]] as const).map(([x, z]) => {
+    const t = torch();
+    t.g.position.set(x, 0, z);
+    home.add(t.g);
+    return t;
+  });
+  const ORE_SPOTS: [number, number][] = [[-2.0, 0.55], [-1.45, 1.45], [0.45, 1.25], [-0.25, -1.35], [-2.1, -1.25], [0.95, -0.6], [-0.6, 1.95], [0.25, 2.05]];
+  const oreGroup = new THREE.Group();
+  home.add(oreGroup);
+  const setOres = (list: Ore[]) => {
+    oreGroup.clear();
+    list.slice(0, ORE_SPOTS.length).forEach((ore, i) => {
+      const b = oreBlock(ore);
+      b.position.x = ORE_SPOTS[i][0];
+      b.position.z = ORE_SPOTS[i][1];
+      b.rotation.y = i * 0.7;
+      b.userData.index = i;
+      oreGroup.add(b);
+    });
+  };
+  setOres(o.ores ?? []);
+  const bursts: ReturnType<typeof shards>[] = [];
 
   // Dev's car from the Garage, parked beside him with shiny reflections.
   if (o.car) {
@@ -493,7 +497,17 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
     if (down && Math.abs(e.clientX - down.x) < 5) {
       const r = canvas.getBoundingClientRect();
       ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
-      if (ray.intersectObject(ellie.root, true).length) {
+      const oreHit = ray.intersectObject(oreGroup, true)[0];
+      if (oreHit) {
+        const blk = oreHit.object as THREE.Mesh;
+        const at = blk.getWorldPosition(new THREE.Vector3());
+        const burst = shards(blk.userData.ore, scene.worldToLocal(at));
+        scene.add(burst.g);
+        bursts.push(burst);
+        oreGroup.remove(blk);
+        hJump.reset().play();
+        o.onMine?.(blk.userData.index, blk.userData.ore);
+      } else if (ray.intersectObject(ellie.root, true).length) {
         ellie.trick(Math.random() < 0.5 ? "spin" : "hop", clock.elapsedTime);
       } else if (ray.intersectObject(hero, true).length) {
         hJump.reset().play();
@@ -541,6 +555,14 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
     }
     heroMixer.update(dt);
     ellie.update(t, dt);
+    for (const tc of torches) tc.update(t);
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      if (!bursts[i].update(dt)) {
+        scene.remove(bursts[i].g);
+        bursts.splice(i, 1);
+      }
+    }
+    oreGroup.children.forEach((b, i) => (b.position.y = 0.17 + Math.abs(Math.sin(t * 2 + i)) * 0.04));
     for (const s of spinners) s.rotation.y += dt * 1.6;
     for (const b of bobbers) b.obj.position.y = b.base + Math.sin(t * 0.8 + b.phase) * 0.15;
     for (const c of clouds) {
@@ -609,6 +631,7 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
     resize,
     setActive,
     cheer,
+    setOres,
     dispose: () => {
       active = false;
       if (raf) cancelAnimationFrame(raf);
