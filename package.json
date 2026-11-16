@@ -1,0 +1,39 @@
+{
+  "name": "dev-essay",
+  "version": "1.0.0",
+  "description": "Typing and essay practice for the Sudie Williams TAG writing test",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinesh83/dev_essay.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vinesh83/dev_essay/issues"
+  },
+  "homepage": "https://github.com/vinesh83/dev_essay#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vercel/node": "^31.0.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  },
+  "private": true,
+  "type": "module"
+}
