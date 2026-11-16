@@ -1,5 +1,5 @@
 import { next } from "@vercel/functions";
-import { COOKIE, isUnlocked, passcode, safeEqual, sessionToken } from "./api/_passcode";
+import { COOKIE, isUnlocked, passcode, safeEqual, sessionToken } from "./api/_passcode.js";
 
 // Locks the whole site, including /api/grade, behind the family passcode.
 // Runs on Vercel before any page, asset, or function is served.

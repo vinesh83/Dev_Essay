@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { isUnlocked } from "./_passcode";
+import { isUnlocked } from "./_passcode.js";
 
 // Grades one essay against the Sudie L. Williams TAG Academy essay rubric
 // (aligned to the STAAR grades 3-5 argumentative rubric). Needs the
