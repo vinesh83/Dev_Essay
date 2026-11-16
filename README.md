@@ -45,3 +45,7 @@ npm test
 3. The Parents page shows "AI rubric grading on" once the key works.
 
 The key stays on the server (`api/grade.ts`). It is never sent to the browser.
+
+## Family passcode
+
+Set `FAMILY_PASSCODE` in the Vercel project's environment variables (Production), then redeploy. Every page and `/api/grade` then asks for the passcode once per device. A correct entry is remembered for a year. Changing the passcode signs out every device. Parents can lock a device from the Parents page. If the variable is unset, the app stays open.

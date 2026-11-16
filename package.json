@@ -21,6 +21,7 @@
   "homepage": "https://github.com/vinesh83/dev_essay#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@vercel/functions": "^3.11.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

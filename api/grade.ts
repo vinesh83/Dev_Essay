@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { isUnlocked } from "./_passcode";
 
 // Grades one essay against the Sudie L. Williams TAG Academy essay rubric
 // (aligned to the STAAR grades 3-5 argumentative rubric). Needs the
@@ -53,6 +54,8 @@ const SCHEMA = {
 } as const;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Second lock behind the site middleware: no passcode cookie, no grading.
+  if (!(await isUnlocked(req.headers.cookie))) return res.status(401).json({ error: "Family passcode required" });
   const enabled = Boolean(process.env.ANTHROPIC_API_KEY);
   if (req.method === "GET") return res.status(200).json({ enabled });
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

@@ -226,6 +226,7 @@ export default function Progress() {
               }}
             />
           </label>
+          <a className="btn ghost" href="/__lock" title="Asks for the family passcode next time">🔒 Lock this device</a>
           <span className="spacer" />
           <button
             className="btn"
