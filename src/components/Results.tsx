@@ -1,7 +1,8 @@
 import { go } from "../App";
 import { SKILLS } from "../data/drills";
 import { STEPS, type StepId } from "../data/process";
-import type { RubricScore } from "../lib/store";
+import { useStore, type RubricScore } from "../lib/store";
+import Scene from "./Scene";
 
 const ROWS: { key: keyof RubricScore; name: string; max: number; levels: Record<number, string> }[] = [
   { key: "argument", name: "Opinion", max: 15, levels: { 15: "Clear and focused the whole way.", 10: "Stated, but not fully developed.", 5: "Present, but not developed.", 0: "Hard to find." } },
@@ -26,15 +27,20 @@ export function ScoreRing({ total }: { total: number }) {
 }
 
 export default function Results({ score, coins, steps, onAgain }: { score: RubricScore; coins: number; steps?: StepId[]; onAgain: () => void }) {
+  const s = useStore();
   return (
     <>
       <div className="card">
         <div className="row" style={{ gap: 24 }}>
           <ScoreRing total={score.total} />
+          <div className="results-stage">
+            <Scene s={s} height={200} three layout="stage" mood="cheer" label={false} />
+          </div>
           <div style={{ flex: 1, minWidth: 240 }}>
             <h1>{score.total >= 90 ? "Legendary! 🏆" : score.total >= 75 ? "Great work! ⭐" : score.total >= 50 ? "Good progress! 💪" : "Every quest starts here! 🗺️"}</h1>
             <p>{score.summary}</p>
             <p className="pill good">+{coins} coins</p>
+            <p className="small muted">🐾 Ellie is doing happy zoomies!</p>
             {score.source === "auto" && <p className="small muted">{score.note ?? "Built-in estimate. AI grading gives a more accurate score."}</p>}
             {score.source === "ai" && <p className="small muted">Scored with the Sudie TAG rubric by the AI coach.</p>}
           </div>

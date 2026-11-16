@@ -1,4 +1,5 @@
 import Hero from "../components/Hero";
+import Scene from "../components/Scene";
 import { toast } from "../components/Toast";
 import { ITEMS, SLOTS, type Slot } from "../data/shop";
 import { BADGES, update, useStore } from "../lib/store";
@@ -25,7 +26,11 @@ export default function Shop() {
     <>
       <div className="card">
         <div className="row" style={{ gap: 20 }}>
-          <Hero s={s} size={180} />
+          <div style={{ width: 300, maxWidth: "100%", flexShrink: 0 }}>
+            <Scene s={s} height={280} three layout="stage" label={false}>
+              <Hero s={s} size={180} />
+            </Scene>
+          </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <h1>Quest Shop</h1>
             <p>

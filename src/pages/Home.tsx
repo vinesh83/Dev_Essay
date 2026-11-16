@@ -33,7 +33,7 @@ export default function Home() {
   if (!s.diagnosticDone) {
     return (
       <>
-        <Scene s={s} height={300}>
+        <Scene s={s} height={340} three>
           <Hero s={s} size={220} />
         </Scene>
         <div className="card center" style={{ padding: 30 }}>
@@ -51,7 +51,7 @@ export default function Home() {
 
   return (
     <>
-      <Scene s={s} height={260}>
+      <Scene s={s} height={340} three>
         <Hero s={s} size={190} />
         <div className="scene-panel">
           <h1 style={{ marginBottom: 4 }}>Hi {s.name}!</h1>

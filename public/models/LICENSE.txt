@@ -1,0 +1,3 @@
+3D models in this folder are CC0 1.0 (public domain).
+
+character, coin, flag, cloud, platform*, grass, brick: Kenney (kenney.nl), Starter Kit 3D Platformer.

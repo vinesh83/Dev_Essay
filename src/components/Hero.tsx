@@ -49,7 +49,7 @@ export default function Hero({ s, size = 180, scene = true }: { s: State; size?:
   const pet = itemById(e.pet);
   const cape = CAPE_COLOR[e.cape ?? ""];
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label="Your hero" style={{ flexShrink: 0, overflow: "visible" }}>
+    <svg className="svg-hero" viewBox="0 0 200 200" width={size} height={size} role="img" aria-label="Your hero" style={{ flexShrink: 0, overflow: "visible" }}>
       {scene && <ellipse cx="100" cy="188" rx="70" ry="10" fill="rgba(0,0,0,0.35)" />}
       {/* cape */}
       {cape && <path d="M72 92 Q60 150 58 182 L142 182 Q140 150 128 92 Z" fill={cape} stroke="rgba(0,0,0,0.25)" strokeWidth="2" />}

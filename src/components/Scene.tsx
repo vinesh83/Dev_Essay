@@ -1,11 +1,13 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { REALMS } from "../data/cards";
 import { level, type State } from "../lib/store";
+
+const World3D = lazy(() => import("./World3D"));
 
 // A painted backdrop: sky, stars, moon, the far-off Crystal Academy, and
 // rolling hills in the colors of Dev's current realm.
 
-const SHOP_REALMS: Record<string, { sky: readonly [string, string]; ground: string; accent: string }> = {
+export const SHOP_REALMS: Record<string, { sky: readonly [string, string]; ground: string; accent: string }> = {
   realm_forest: { sky: ["#10263a", "#2c6a4c"], ground: "#1f5a35", accent: "#9be59b" },
   realm_sky: { sky: ["#2a3f8f", "#8fd0ff"], ground: "#dfefff", accent: "#ffffff" },
   realm_volcano: { sky: ["#2a0f1a", "#c2452d"], ground: "#4a2020", accent: "#ff8a3d" },
@@ -17,12 +19,29 @@ export function currentRealm(s: State) {
   return [...REALMS].reverse().find((r) => lv >= r.level) ?? REALMS[0];
 }
 
-export default function Scene({ s, height = 220, children }: { s: State; height?: number; children?: ReactNode }) {
+export default function Scene({
+  s,
+  height = 220,
+  children,
+  three = false,
+  layout = "home",
+  mood = "idle",
+  label = true,
+}: {
+  s: State;
+  height?: number;
+  children?: ReactNode;
+  three?: boolean;
+  layout?: "home" | "stage";
+  mood?: "idle" | "cheer";
+  label?: boolean;
+}) {
+  const [is3d, setIs3d] = useState(false);
   const realm = currentRealm(s);
   const look = SHOP_REALMS[s.equipped.realm ?? ""] ?? realm;
   const stars = Array.from({ length: 40 }, (_, i) => ({ x: (i * 97) % 800, y: (i * 53) % 120, r: (i % 3) * 0.5 + 0.6 }));
   return (
-    <div className="scene" style={{ height }}>
+    <div className={`scene ${is3d ? "is3d" : ""} ${layout === "stage" ? "stage" : ""}`} style={{ height }}>
       <svg viewBox="0 0 800 260" preserveAspectRatio="xMidYMax slice" className="scene-bg" aria-hidden>
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -55,8 +74,13 @@ export default function Scene({ s, height = 220, children }: { s: State; height?
         <path d="M0 215 Q160 175 330 205 T620 195 T800 205 L800 260 L0 260 Z" fill={look.ground} />
         <path d="M0 215 Q160 175 330 205 T620 195 T800 205" fill="none" stroke={look.accent} strokeOpacity="0.4" strokeWidth="2" />
       </svg>
+      {three && (
+        <Suspense fallback={null}>
+          <World3D s={s} look={look} layout={layout} mood={mood} onReady={setIs3d} />
+        </Suspense>
+      )}
       <div className="scene-content">{children}</div>
-      <div className="scene-label">📍 {realm.name}</div>
+      {label && <div className="scene-label">📍 {realm.name}</div>}
     </div>
   );
 }
