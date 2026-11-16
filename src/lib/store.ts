@@ -78,6 +78,10 @@ export type State = {
   helpOverride?: 0 | 1 | 2 | 3; // 0 or missing = automatic training wheels
   plansDoneComplete?: number; // complete plans from Brainstorm Sprints
   lessons?: Record<string, { stars: number; done: number }>; // Writing School
+  startDay?: number; // first day Dev used the app (Quest Calendar week 1)
+  claimed?: string[]; // Quest Calendar drops collected
+  surpriseDay?: number; // last day the daily surprise was opened
+  fingerChecks?: { day: number; ok: boolean }[]; // parent-watched finger checks
 };
 
 export type ChestTier = "wood" | "silver" | "gold";
@@ -120,6 +124,7 @@ function load(): State {
 }
 
 let state: State = typeof localStorage === "undefined" ? fresh() : load();
+if (state.startDay === undefined) state = { ...state, startDay: Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000) };
 const listeners = new Set<() => void>();
 
 function save() {
@@ -155,10 +160,14 @@ export function useStore(): State {
 export const today = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 
 /** Award XP and coins, and keep the daily streak going. */
+let coinMult = () => 1;
+/** The Quest Calendar sets this so festival weekends pay extra coins. */
+export const setCoinMultiplier = (f: () => number) => (coinMult = f);
+
 export function addXp(n: number, coins = n) {
   update((s) => {
     s.xp += n;
-    s.coins += coins;
+    s.coins += Math.round(coins * coinMult());
     const d = today();
     if (s.streak.lastDay !== d) {
       s.streak.count = s.streak.lastDay === d - 1 ? s.streak.count + 1 : 1;
@@ -268,4 +277,13 @@ export function finishLesson(id: string, stars: number) {
   });
   addXp(first ? 40 : 10, first ? 30 : 5);
   return first;
+}
+
+/** Collect a Quest Calendar drop once. */
+export function claimDrop(id: string, coins = 0, chest?: ChestTier, reason = "the Quest Calendar") {
+  if (state.claimed?.includes(id)) return false;
+  update((s) => void (s.claimed = [...(s.claimed ?? []), id]));
+  if (coins) addXp(0, coins);
+  if (chest) giveChest(chest, reason);
+  return true;
 }

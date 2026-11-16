@@ -7,7 +7,7 @@ import { STEPS } from "../data/process";
 import { areaAverages, skillMastery, typingStats } from "../lib/coach";
 import { isAiEnabled } from "../lib/grade";
 import { HELP_INFO, autoHelp, completePlans } from "../lib/scaffold";
-import { exportData, importData, resetAll, today, update, useStore, type Essay } from "../lib/store";
+import { addXp, exportData, giveChest, importData, resetAll, today, update, useStore, type Essay } from "../lib/store";
 
 function LineChart({ points, max, target, label }: { points: number[]; max: number; target?: number; label: string }) {
   const W = 520, H = 160, P = 28;
@@ -59,11 +59,24 @@ export default function Progress() {
   const days14 = Array.from({ length: 14 }, (_, i) => d0 - 13 + i).map((d) => ({ d, min: Math.round((s.practice[String(d)] ?? 0) / 60) }));
   const goalDays = days14.filter((x) => x.min >= s.dailyGoalMin).length;
 
+  const checks = s.fingerChecks ?? [];
+  const passes = checks.filter((c) => c.ok).length;
+  const checkedToday = checks.some((c) => c.day === d0 && c.ok);
+  const fingerCheck = (ok: boolean) => {
+    update((st) => void (st.fingerChecks = [...(st.fingerChecks ?? []), { day: d0, ok }]));
+    if (!ok) return toast("Thanks. Ask Dev to try the Letter Lab for the keys he reached for wrong.");
+    if (checkedToday) return toast("✅ Logged. The reward is once a day.");
+    addXp(30, 30);
+    if ((passes + 1) % 5 === 0) giveChest("gold", "5 finger checks passed");
+    toast(`🖐️ Finger check passed! +30 coins for Dev${(passes + 1) % 5 === 0 ? " and a gold chest!" : "."}`);
+  };
+
   return (
     <>
       <div className="card">
         <h1>📈 Parent Dashboard</h1>
         <p className="muted">Everything is saved in this browser on this device. Use Backup to move it to another computer.</p>
+
         <div className="grid three">
           <div><div className="muted small">Essays written</div><h2>{s.essays.length}</h2></div>
           <div><div className="muted small">Latest score</div><h2>{scored.length ? scored[scored.length - 1].score!.total : "–"} / 100</h2></div>
@@ -71,6 +84,23 @@ export default function Progress() {
           <div><div className="muted small">Full 7-step process</div><h2>{withSteps.length ? `${fullProcess}/${withSteps.length}` : "–"}</h2></div>
           <div><div className="muted small">Writing time</div><h2>{totalMinutes} min</h2></div>
           <div><div className="muted small">Grading</div><h2 style={{ fontSize: "1rem", marginTop: 8 }}>{ai === null ? "Checking…" : ai ? "✅ AI rubric grading on" : "⚠️ Built-in estimate (add API key)"}</h2></div>
+        </div>
+      </div>
+
+      <div className="card finger-check">
+        <h2>🖐️ Finger Check (watch Dev type)</h2>
+        <p>
+          The app can't see Dev's hands, so a quick check from you helps most. Sit next to him while he types one level or one Letter Lab line. Look for three things:
+        </p>
+        <ol className="small">
+          <li>Fingers start on the home row (A S D F, J K L ;) with thumbs on the space bar.</li>
+          <li>Each key is pressed by the finger the screen shows (the colored underline matches the finger).</li>
+          <li>Fingers return home after each reach. Eyes stay on the screen.</li>
+        </ol>
+        <div className="row">
+          <button className="btn good" onClick={() => fingerCheck(true)}>✅ Right fingers! Reward him</button>
+          <button className="btn ghost" onClick={() => fingerCheck(false)}>🔁 Not yet</button>
+          <span className="small muted">{passes} passed so far. Every 5th pass earns a gold chest. Reward: once a day.</span>
         </div>
       </div>
 

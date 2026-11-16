@@ -30,6 +30,10 @@ assign("9ol.", "f-rr", "right ring finger");
 assign("0-=p[]\\;'/", "f-rp", "right pinky");
 assign(" ", "f-th", "thumb");
 
+const HOME_SEQ = "asdfjkl;";
+const HOME_FINGER = ["left pinky", "left ring", "left middle", "left pointer", "right pointer", "right middle", "right ring", "right pinky"];
+const FCLASS = ["f-lp", "f-lr", "f-lm", "f-li", "f-ri", "f-rm", "f-rr", "f-rp"];
+
 const LEFT = new Set("`12345qwertasdfgzxcvb");
 const SHIFTED: Record<string, string> = { "?": "/", ":": ";", '"': "'", "!": "1", "<": ",", ">": "." };
 
@@ -47,12 +51,16 @@ export default function TypingDrill({
   onDone,
   timeLimit,
   showKeyboard = true,
+  homeCheck = true,
 }: {
   lines: string[];
   onDone: (r: TypingResult) => void;
   timeLimit?: number; // seconds
   showKeyboard?: boolean;
+  homeCheck?: boolean; // make Dev press a s d f j k l ; before starting
 }) {
+  const [homeOk, setHomeOk] = useState(!homeCheck);
+  const [homeProg, setHomeProg] = useState(0);
   const [lineIdx, setLineIdx] = useState(0);
   const [pos, setPos] = useState(0);
   const [errAt, setErrAt] = useState<number | null>(null);
@@ -118,6 +126,17 @@ export default function TypingDrill({
     const st = stats.current;
     if (st.done || e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
     e.preventDefault();
+    if (!homeOk) {
+      if (e.key === " ") return;
+      if (e.key.toLowerCase() === HOME_SEQ[homeProg]) {
+        sfx.key(homeProg * 5);
+        if (homeProg + 1 >= HOME_SEQ.length) {
+          setHomeOk(true);
+          sfx.right();
+        } else setHomeProg(homeProg + 1);
+      } else sfx.miss();
+      return;
+    }
     if (!st.start) st.start = Date.now();
     st.typed++;
     const want = line[pos];
@@ -198,17 +217,35 @@ export default function TypingDrill({
         <div className="points"><b>{points}</b><small>points</small></div>
         {banner && <div key={banner.id} className="combo-banner">{banner.text}</div>}
       </div>
-      <div className="type-line" aria-live="polite">
-        {[...line].map((ch, i) => (
-          <span key={i} className={i < pos ? "ok" : i === pos ? (errAt === i ? "err cur" : "cur") : "todo"}>
-            {ch === " " && i === pos ? "␣" : ch}
-          </span>
-        ))}
-      </div>
-      <p className="small" style={{ marginTop: 10, minHeight: 24 }}>
-        {next ? <>👉 {fingerFor(next)}</> : "Nice!"} {errAt !== null && <b style={{ color: "var(--bad)" }}> Oops, try that key again.</b>}
+      {!homeOk ? (
+        <div className="home-check">
+          <h3>🖐️ Fingers on the home row!</h3>
+          <p className="small">Put your fingers on their home keys. Feel the bumps on <b>F</b> and <b>J</b>. Then press each home key once, in order, to start.</p>
+          <div className="home-keys">
+            {[...HOME_SEQ].map((k, i) => (
+              <span key={k} className={`home-key ${FCLASS[i]} ${i < homeProg ? "done" : i === homeProg ? "now" : ""}`}>
+                <b>{k.toUpperCase()}</b>
+                <small>{HOME_FINGER[i]}</small>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="type-line" aria-live="polite">
+          {[...line].map((ch, i) => (
+            <span key={i} className={`${i < pos ? "ok" : i === pos ? (errAt === i ? "err cur" : "cur") : "todo"} ${FINGER[(SHIFTED[ch] ?? ch).toLowerCase()]?.[0] ?? ""}`}>
+              {ch === " " && i === pos ? "␣" : ch}
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="finger-say" style={{ marginTop: 10, minHeight: 30 }}>
+        {homeOk && next ? (
+          <span className={`finger-pill ${FINGER[nextBase]?.[0] ?? ""}`}>👉 {fingerFor(next)}</span>
+        ) : homeOk ? "Nice!" : null}{" "}
+        {errAt !== null && <b style={{ color: "var(--bad)" }}> Oops, try that key again.</b>}
       </p>
-      {showKeyboard && next && <HandGuide target={/[a-zA-Z]/.test(next) ? next : nextBase} size={0.9} />}
+      {showKeyboard && (homeOk ? next : HOME_SEQ[homeProg]) && <HandGuide target={homeOk ? (/[a-zA-Z]/.test(next!) ? next! : nextBase) : HOME_SEQ[homeProg]} size={0.9} />}
       <p className="small muted center" style={{ marginTop: 10 }}>
         Click here if typing stops working. Keep your eyes on the screen, not your hands!
       </p>
