@@ -10,4 +10,15 @@ draco/ (decoder files)
   Draco 3D compression decoder by Google, Apache License 2.0, shipped with
   three.js.
 
+cars/car_vette.glb
+  "2019 Chevrolet Corvette C8 Stingray" by Hari Prasath R (Haris3D),
+  sketchfab.com/3d-models/790c40ccff6843eab0b7b4bd18421ff8
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_coupe.glb
+  "Porsche 911 GT3 RS (992) '23" by Mona x Supercars (Car2022),
+  sketchfab.com/3d-models/99c74d8fa7df42d984903868f6e593f6
+  License: CC BY 4.0. Compressed; crest, side lettering, and plate removed
+  in code.
+
 All other cars are shaped in code for this app. No logos or badges are used.

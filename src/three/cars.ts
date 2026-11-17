@@ -808,10 +808,17 @@ function buildBody(s: Spec) {
 /* ------------------------------------------------------------------ */
 
 // Cars with a real, credited model file (public/models/LICENSE.txt).
-// `turn` rotates the loaded model so its nose points to +x.
-const MODELS: Record<string, { url: string; length: number; body: string[]; turn: number }> = {
+// `turn` rotates the loaded model so its nose points to +x. `body` names
+// paint materials to recolor (the Ferrari only; Sketchfab cars keep their
+// own paint). `hide` drops extra decal meshes. Anything matching BADGE is blacked out: no logos in the app.
+type ModelInfo = { url: string; length: number; turn: number; body?: string[]; hide?: RegExp };
+const MODELS: Record<string, ModelInfo> = {
   car_rosso: { url: "/models/cars/ferrari-458.glb", length: 4.53, body: ["Body_Color"], turn: -Math.PI / 2 },
+  car_vette: { url: "/models/cars/car_vette.glb", length: 4.63, turn: Math.PI / 2 },
+  car_coupe: { url: "/models/cars/car_coupe.glb", length: 4.57, turn: Math.PI / 2, hide: /PaletteMaterial001\b|W1Mtl|Usagemeral/ }, // side lettering, crest, plate
 };
+const BADGE = /badge|logo|emblem|decal|crest|lettering|script|license|plate|ferrari_yellow/i;
+const HIDE = /shadow|ground|floor|backdrop|^plane/i;
 const gltfCache: Record<string, Promise<THREE.Group>> = {};
 let draco: DRACOLoader | null = null;
 
@@ -824,15 +831,19 @@ function loadModel(id: string, paintHex: string): Promise<THREE.Group> {
     const paint = new THREE.MeshPhysicalMaterial({ color: paintHex, metalness: 0.6, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.04 });
     const glass = new THREE.MeshPhysicalMaterial({ color: "#0e1520", metalness: 0.2, roughness: 0.03, transparent: true, opacity: 0.6 });
     const badge = new THREE.MeshStandardMaterial({ color: "#1a1b1f", metalness: 0.6, roughness: 0.4 });
+    const hide: THREE.Object3D[] = [];
     model.traverse((o) => {
       const me = o as THREE.Mesh;
       if (!me.isMesh) return;
       me.castShadow = true;
-      const name = (me.material as THREE.Material).name;
-      if (info.body.includes(name)) me.material = paint;
-      else if (name === "Glass_Gray") me.material = glass;
-      else if (name === "Ferrari_Yellow") me.material = badge; // no badges or logos
+      const mats = ([] as THREE.Material[]).concat(me.material);
+      const names = [me.name, me.parent?.name ?? "", ...mats.map((m) => m.name)].join(" ");
+      if (HIDE.test(names) || info.hide?.test(names)) hide.push(me);
+      else if (BADGE.test(names)) me.material = badge;
+      else if (info.body?.includes(mats[0].name)) me.material = paint;
+      else if (mats[0].name === "Glass_Gray") me.material = glass;
     });
+    hide.forEach((o) => o.removeFromParent());
     const wrap = new THREE.Group();
     wrap.add(model);
     model.rotation.y = info.turn;
