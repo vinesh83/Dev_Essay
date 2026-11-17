@@ -1,3 +1,13 @@
-3D models in this folder are CC0 1.0 (public domain).
+3D model credits
 
-character, coin, flag, cloud, platform*, grass, brick: Kenney (kenney.nl), Starter Kit 3D Platformer.
+cars/ferrari-458.glb
+  "Ferrari 458 Italia" model by vicent091036 (Sketchfab), as redistributed
+  with credit in the three.js examples (github.com/mrdoob/three.js,
+  examples/models/gltf/ferrari.glb). The original Sketchfab page is no
+  longer online. Body paint and glass materials are changed in code.
+
+draco/ (decoder files)
+  Draco 3D compression decoder by Google, Apache License 2.0, shipped with
+  three.js.
+
+All other cars are shaped in code for this app. No logos or badges are used.

@@ -427,6 +427,7 @@ export async function createWorld(canvas: HTMLCanvasElement, o: WorldOpts): Prom
     const pm = new THREE.PMREMGenerator(renderer);
     const env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
     pm.dispose();
+    car.root.userData.env = env;
     car.root.traverse((x) => {
       const m = x as THREE.Mesh;
       if (m.isMesh) ([] as THREE.Material[]).concat(m.material).forEach((mm) => ((mm as THREE.MeshStandardMaterial).envMap = env));

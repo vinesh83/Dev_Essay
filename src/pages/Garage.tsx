@@ -59,7 +59,7 @@ export default function Garage() {
             )}
             <span className="small muted">You have 🪙 {s.coins} · {ownedCount}/{CARS.length} cars</span>
           </div>
-          <p className="small muted">Drag the car to spin it. Simplified 3D models built for this game. Stats are rounded.</p>
+          <p className="small muted">Drag the car to spin it. Stats are rounded. {car.id === "car_rosso" ? "3D model by vicent091036, via the three.js examples." : "Shaped from the real car's proportions. No logos."}</p>
         </div>
       </div>
       <div className="grid three car-grid">

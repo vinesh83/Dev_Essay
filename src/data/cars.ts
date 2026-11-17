@@ -1,5 +1,6 @@
-// The Garage. Real sports cars Dev will recognize, by name only. The 3D
-// models are simplified shapes built in code: no logos, badges, or photos.
+// The Garage. Real sports cars Dev will recognize, by name only. Most 3D
+// models are shaped in code from each car's real proportions; the Ferrari
+// is a credited CC model. No logos, badges, or photos.
 // Stats are approximate published figures, rounded.
 
 export type CarInfo = { id: string; name: string; style: string; price: number; hp: number; top: number; zero: number; blurb: string; rarity: "common" | "rare" | "epic" | "legendary" };
@@ -8,7 +9,7 @@ export const CARS: CarInfo[] = [
   { id: "car_vette", name: "Chevrolet Corvette Stingray", style: "Mid-engine American sports car", price: 150, hp: 495, top: 194, zero: 2.9, blurb: "America's sports car, with the engine behind the seats.", rarity: "common" },
   { id: "car_coupe", name: "Porsche 911 Carrera S", style: "Rear-engine German coupe", price: 180, hp: 443, top: 191, zero: 3.3, blurb: "Round headlights and a shape that's been famous for 60 years.", rarity: "common" },
   { id: "car_wedge", name: "Lamborghini Aventador", style: "Italian V12 supercar", price: 220, hp: 769, top: 217, zero: 2.8, blurb: "Sharp as a wedge and loud as thunder.", rarity: "common" },
-  { id: "car_rosso", name: "Ferrari 488 GTB", style: "Italian mid-engine supercar", price: 260, hp: 661, top: 205, zero: 3.0, blurb: "Bright red and born on the racetrack.", rarity: "rare" },
+  { id: "car_rosso", name: "Ferrari 458 Spider", style: "Italian mid-engine supercar", price: 260, hp: 562, top: 199, zero: 3.0, blurb: "Bright red, roof down, and born on the racetrack. A detailed 3D model.", rarity: "rare" },
   { id: "car_muscle", name: "Ford Mustang Shelby GT500", style: "American muscle car", price: 260, hp: 760, top: 180, zero: 3.3, blurb: "Racing stripes and a rumble you can feel.", rarity: "rare" },
   { id: "car_rally", name: "Subaru WRX STI", style: "Rally car", price: 280, hp: 310, top: 159, zero: 4.9, blurb: "Mud, gravel, snow: it does not care.", rarity: "rare" },
   { id: "car_midnight", name: "Maserati GranTurismo", style: "Italian grand tourer", price: 340, hp: 542, top: 199, zero: 3.5, blurb: "Fast, comfy, and very fancy.", rarity: "rare" },

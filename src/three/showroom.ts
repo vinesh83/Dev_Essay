@@ -61,9 +61,14 @@ export function createShowroom(canvas: HTMLCanvasElement, carId: string) {
   let drag = false;
   let lastX = 0;
   let spin = 0.25;
+  // Automated tests hold a fixed pose so screenshots compare cleanly.
+  if (navigator.webdriver) {
+    spin = 0;
+    (window as unknown as { __pose: (r: number) => void }).__pose = (r) => (turntable.rotation.y = r);
+  }
   const down = (e: PointerEvent) => { drag = true; lastX = e.clientX; canvas.setPointerCapture(e.pointerId); };
   const move = (e: PointerEvent) => { if (!drag) return; turntable.rotation.y += (e.clientX - lastX) * 0.01; lastX = e.clientX; spin = 0; };
-  const up = () => { drag = false; spin = 0.25; };
+  const up = () => { drag = false; spin = navigator.webdriver ? 0 : 0.25; };
   canvas.addEventListener("pointerdown", down);
   canvas.addEventListener("pointermove", move);
   canvas.addEventListener("pointerup", up);
@@ -73,7 +78,7 @@ export function createShowroom(canvas: HTMLCanvasElement, carId: string) {
     const h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    camera.position.setLength(w < 500 ? 10.5 : 8.8);
+    camera.position.setLength(w < 500 ? 9.4 : 7.6);
     camera.updateProjectionMatrix();
   };
   resize();
