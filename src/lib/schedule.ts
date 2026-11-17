@@ -40,15 +40,15 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
   const timedDay = today() % 2 === 0;
   const list: Block[] = weekend
     ? [
-        { id: "warmup", icon: "🔥", title: "Typing warm-up", detail: "Home-row check, then Letter Lab and capitals.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
+        { id: "warmup", icon: "🔥", title: "Typing warm-up", detail: "Home-row check, then Sentence Sprints.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         { id: "mock", icon: "🎯", title: "Full mock test", detail: "One essay, test rules, just like test day.", minutes: m("mock"), route: "mock", routes: ["mock"] },
         { id: "review", icon: "🔍", title: "Score review and fix-up", detail: "Read your score, then rewrite one paragraph to fix one thing.", minutes: m("review"), route: "write", routes: WRITING_ROUTES },
         { id: "explore", icon: "🎮", title: "Free explore + weekend chest", detail: "Garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ]
     : [
-        { id: "warmup", icon: "🔥", title: "Warm-up", detail: "Home-row check and finger drills.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
-        { id: "typing", icon: "⌨️", title: "Typing", detail: "Letter Lab on your weakest letters, plus capitals.", minutes: m("typing"), route: "typing", routes: ["typing"] },
+        { id: "warmup", icon: "🔥", title: "Warm-up", detail: "Home-row check, then your next typing level.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
+        { id: "typing", icon: "⌨️", title: "Typing", detail: "Sentence Sprints with your weak letters, plus capitals.", minutes: m("typing"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         timedDay
           ? { id: "writing", icon: "✍️", title: "Writing: full essay", detail: "Plan and write a whole essay. Try to beat each step's test-day time.", minutes: m("writing"), route: "write", routes: WRITING_ROUTES }

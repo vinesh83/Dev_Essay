@@ -3,6 +3,7 @@ import HandGuide, { describeReach, homeKeyFor } from "../components/HandGuide";
 import TypingDrill, { type TypingResult } from "../components/TypingDrill";
 import { toast, toastBadges } from "../components/Toast";
 import { TYPING_LEVELS, TYPING_TARGET_ACCURACY, TYPING_TARGET_WPM, TYPING_TEST_TEXT } from "../data/typing";
+import { FUN_SENTENCES, pickSentences, sentencesWith, wordsWith } from "../data/sentences";
 import { currentTypingLevel, levelPassed } from "../lib/coach";
 import { addXp, checkBadges, getState, giveChest, markMission, update, useStore, type State } from "../lib/store";
 
@@ -22,24 +23,20 @@ export function weakKeys(s: State, n = 4): string[] {
     .map((x) => x.k);
 }
 
+/** Real sentences packed with the keys he misses. */
 function weakLines(keys: string[]): string[] {
-  const pool = WORDS.filter((w) => keys.some((k) => w.includes(k)));
-  const pick = () => pool[Math.floor(Math.random() * pool.length)];
-  return Array.from({ length: 4 }, () => Array.from({ length: 6 }, pick).join(" "));
+  return pickSentences(5, keys);
 }
 
-/** Lines that drill one letter: home-key bounces, then real words. */
+const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
+
+/** One quick reach drill for the letter, then real words and sentences. */
 export function letterLines(ch: string): string[] {
   const h = homeKeyFor(ch) || ch;
   const bounce = ch === h ? `${h}${h}${h} ` : `${h}${ch}${h} `;
-  const words = WORDS.filter((w) => w.includes(ch));
-  const pick = () => words[Math.floor(Math.random() * words.length)] ?? ch;
-  return [
-    bounce.repeat(5).trim(),
-    `${ch}${ch} ${h}${ch} ${ch}${h} `.repeat(3).trim(),
-    Array.from({ length: 5 }, pick).join(" "),
-    Array.from({ length: 5 }, pick).join(" "),
-  ];
+  const words = shuffle([...wordsWith(ch), ...WORDS.filter((w) => w.includes(ch))]).slice(0, 5);
+  const sents = shuffle(sentencesWith(ch)).slice(0, 3);
+  return [bounce.repeat(3).trim(), words.join(" ") || ch, ...(sents.length ? sents : pickSentences(3))];
 }
 
 /** Capital-letter lines: the two-finger move, then capitals in real sentences. */
@@ -49,12 +46,8 @@ export function capLines(ch: string): string[] {
   const cap = (w: string) => w[0].toUpperCase() + w.slice(1);
   const words = WORDS.filter((w) => w.startsWith(lo)).map(cap);
   const pick = () => words[Math.floor(Math.random() * words.length)] ?? up;
-  return [
-    `${up}${lo} `.repeat(5).trim(),
-    `${up} ${lo} ${up} ${up}${lo}${lo} `.repeat(2).trim(),
-    Array.from({ length: 5 }, pick).join(" "),
-    Array.from({ length: 5 }, pick).join(" "),
-  ];
+  const sents = shuffle(FUN_SENTENCES.filter((x) => x.includes(up))).slice(0, 3);
+  return [`${up}${lo} `.repeat(3).trim(), Array.from({ length: 4 }, pick).join(" "), ...(sents.length ? sents : shuffle(CAPS_LINES).slice(0, 3))];
 }
 
 export const CAPS_LINES = [
@@ -84,11 +77,13 @@ function linesFor(mode: Mode): string[] {
               : letterLines(mode.ch)
             : mode.kind === "caps"
               ? [...CAPS_LINES].sort(() => Math.random() - 0.5).slice(0, 5)
-              : [TYPING_TEST_TEXT, TYPING_TEST_TEXT]
+              : mode.kind === "sprint"
+                ? pickSentences(6, mode.keys)
+                : [TYPING_TEST_TEXT, TYPING_TEST_TEXT]
   );
 }
 
-type Mode = { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean } | { kind: "caps"; watching: boolean };
+type Mode = { kind: "sprint"; keys: string[] } | { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean } | { kind: "caps"; watching: boolean };
 
 export default function Typing() {
   const s = useStore();
@@ -137,6 +132,9 @@ export default function Typing() {
     } else if (mode.kind === "letter") {
       addXp(10);
       setResult({ ...r, label: `Letter Lab: ${mode.ch === mode.ch.toUpperCase() ? "Capital " : ""}${mode.ch.toUpperCase()}` });
+    } else if (mode.kind === "sprint") {
+      addXp(15);
+      setResult({ ...r, label: "🏁 Sentence Sprint" });
     } else if (mode.kind === "caps") {
       addXp(12);
       setResult({ ...r, label: "Capital Letters Drill" });
@@ -198,11 +196,11 @@ export default function Typing() {
 
   if (mode && !result) {
 
-    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : mode.kind === "caps" ? "Every capital: hold Shift on the other side, press the letter, let go of both." : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
+    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : mode.kind === "caps" ? "Every capital: hold Shift on the other side, press the letter, let go of both." : mode.kind === "sprint" ? "Real sentences! Keep your fingers on home row and watch the finger colors. Smooth beats fast." : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
     return (
       <div className="card">
         <div className="row">
-          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : mode.kind === "caps" ? "Capital Letters" : "Weak-Key Training"}</h2>
+          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : mode.kind === "caps" ? "Capital Letters" : mode.kind === "sprint" ? "🏁 Sentence Sprint" : "Weak-Key Training"}</h2>
           <span className="spacer" />
           <button className="btn ghost" onClick={() => setMode(null)}>
             Back
@@ -251,6 +249,19 @@ export default function Typing() {
           </div>
         </div>
       )}
+      <div className="card sprint-card">
+        <div className="row">
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <h2 style={{ margin: 0 }}>🏁 Sentence Sprint</h2>
+            <p className="muted" style={{ margin: "4px 0 0" }}>
+              Type real sentences about fast cars, Ellie, block worlds, and more.{weak.length ? ` They're packed with the letters you miss most: ${weak.join(" ").toUpperCase()}.` : ""} Fingers start on home row, and the colors show which finger to use.
+            </p>
+          </div>
+          <button className="btn big" onClick={() => start({ kind: "sprint", keys: weak })}>
+            Start a sprint ▶
+          </button>
+        </div>
+      </div>
       <div className="card">
         <div className="row">
           <h2 style={{ margin: 0 }}>Typing Dojo</h2>
@@ -279,7 +290,7 @@ export default function Typing() {
       </div>
       <div className="card">
         <h2>🔤 Letter Lab</h2>
-        <p className="muted">Pick any letter. Animated hands show which finger presses it and how it reaches, then you practice just that letter. Colors show your accuracy on each key.</p>
+        <p className="muted">Stuck on a letter? Watch the animated hands show which finger presses it, do one quick reach drill, then type real words and sentences with it. Colors show your accuracy on each key.</p>
         <div className="row" style={{ marginBottom: 10 }}>
           <div className="seg" role="group" aria-label="Lowercase or capital">
             <button className={!capsOn ? "on" : ""} onClick={() => setCapsOn(false)}>a  lowercase</button>

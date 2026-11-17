@@ -580,3 +580,4 @@ th { font-size: 0.85rem; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .breathe { animation: none; } }
 .break-clock { font-size: 3rem; font-weight: 900; font-variant-numeric: tabular-nums; }
 .locked-screen { padding: 34px 20px; }
+.sprint-card { border-color: rgba(255, 209, 102, 0.5); background: linear-gradient(135deg, rgba(255, 209, 102, 0.12), rgba(107, 78, 255, 0.12)); }
