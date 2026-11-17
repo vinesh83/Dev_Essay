@@ -35,16 +35,19 @@ export type CarSpec = {
 const base = { W: 1.95, R: 0.36, ride: 0.14, rim: "#c9ccd2", caliper: "#e0435c" };
 
 export const CAR_SPECS: Record<string, CarSpec> = {
+  car_roadster: { ...base, paint: "#c8102e", L: 4.3, nose: 0.52, belt: 0.82, tail: 0.92, roof: 1.08, ws: 1.35, roofA: 2.05, roofB: 2.55, rear: 3.5, wf: 0.9, wr: 3.45, wing: "lip", rim: "#2a2d33", caliper: "#c9ccd2" },
+  car_models: { ...base, paint: "#f2f4f6", L: 5.0, W: 2.0, nose: 0.62, belt: 0.92, tail: 0.98, roof: 1.42, ws: 1.6, roofA: 2.3, roofB: 3.55, rear: 4.5, wf: 1.0, wr: 3.95, wing: "lip", rim: "#2a2d33", caliper: "#e0435c" },
+  car_vette: { ...base, paint: "#ff6a13", accent: "#16171c", L: 4.6, nose: 0.58, belt: 0.86, tail: 0.98, roof: 1.16, ws: 1.45, roofA: 2.15, roofB: 2.7, rear: 3.7, wf: 0.95, wr: 3.65, wing: "duck", rim: "#16171c", caliper: "#e0435c", scoop: true },
   car_wedge: { ...base, paint: "#9be22a", L: 4.6, nose: 0.55, belt: 0.82, tail: 0.95, roof: 1.12, ws: 1.35, roofA: 2.25, roofB: 2.85, rear: 3.75, wf: 0.95, wr: 3.7, wing: "lip", caliper: "#ffcc33", scoop: true },
   car_rosso: { ...base, paint: "#d8141e", L: 4.5, nose: 0.6, belt: 0.86, tail: 0.98, roof: 1.18, ws: 1.4, roofA: 2.15, roofB: 2.7, rear: 3.6, wf: 0.95, wr: 3.6, wing: "duck", caliper: "#ffcc33" },
   car_coupe: { ...base, paint: "#b9bcc4", L: 4.4, nose: 0.62, belt: 0.86, tail: 0.86, roof: 1.3, ws: 1.5, roofA: 2.1, roofB: 2.6, rear: 4.1, wf: 0.85, wr: 3.55, round: true, wing: "duck", rim: "#2b2b30" },
   car_muscle: { ...base, paint: "#1f5fd6", accent: "#ffffff", L: 4.8, W: 2.0, nose: 0.85, belt: 0.98, tail: 0.95, roof: 1.36, ws: 1.9, roofA: 2.5, roofB: 3.15, rear: 3.9, wf: 1.0, wr: 3.85, R: 0.38, stripes: true, wing: "lip", scoop: true, rim: "#1b1b1f" },
-  car_rally: { ...base, paint: "#f2f2ee", accent: "#1c9bd8", L: 4.3, nose: 0.75, belt: 1.02, tail: 1.0, roof: 1.5, ws: 1.35, roofA: 1.95, roofB: 3.3, rear: 3.9, wf: 0.85, wr: 3.45, R: 0.4, ride: 0.3, stripes: true, wing: "big", rim: "#f2f2ee", number: 7 },
-  car_midnight: { ...base, paint: "#16171c", accent: "#d4a017", L: 4.9, nose: 0.66, belt: 0.92, tail: 0.94, roof: 1.28, ws: 1.7, roofA: 2.45, roofB: 3.1, rear: 4.1, wf: 1.05, wr: 3.9, wing: "duck", rim: "#d4a017", caliper: "#d4a017" },
-  car_tuner: { ...base, paint: "#ff7a1a", accent: "#16171c", L: 4.4, nose: 0.66, belt: 0.9, tail: 0.9, roof: 1.3, ws: 1.55, roofA: 2.15, roofB: 2.85, rear: 3.75, wf: 0.9, wr: 3.55, wing: "big", rim: "#16171c", stripes: true },
+  car_rally: { ...base, paint: "#1846a8", accent: "#ffd400", L: 4.3, nose: 0.75, belt: 1.02, tail: 1.0, roof: 1.5, ws: 1.35, roofA: 1.95, roofB: 3.3, rear: 3.9, wf: 0.85, wr: 3.45, R: 0.4, ride: 0.3, stripes: true, wing: "big", rim: "#ffd400", number: 7 },
+  car_midnight: { ...base, paint: "#1d2b53", accent: "#c9ccd2", L: 4.9, nose: 0.66, belt: 0.92, tail: 0.94, roof: 1.28, ws: 1.7, roofA: 2.45, roofB: 3.1, rear: 4.1, wf: 1.05, wr: 3.9, wing: "duck", rim: "#c9ccd2", caliper: "#1c9bd8" },
+  car_tuner: { ...base, paint: "#3d5a80", accent: "#16171c", L: 4.4, nose: 0.66, belt: 0.9, tail: 0.9, roof: 1.3, ws: 1.55, roofA: 2.15, roofB: 2.85, rear: 3.75, wf: 0.9, wr: 3.55, wing: "big", rim: "#16171c", stripes: true },
   car_volt: { ...base, paint: "#eef2f6", accent: "#22d3ee", L: 4.7, nose: 0.55, belt: 0.84, tail: 0.95, roof: 1.12, ws: 1.35, roofA: 2.2, roofB: 2.9, rear: 3.8, wf: 0.95, wr: 3.75, lightbar: true, wing: "lip", rim: "#3a3f47", caliper: "#22d3ee" },
-  car_gt3: { ...base, paint: "#ffd400", accent: "#16171c", L: 4.7, W: 2.05, nose: 0.55, belt: 0.86, tail: 0.95, roof: 1.18, ws: 1.5, roofA: 2.2, roofB: 2.85, rear: 3.8, wf: 0.95, wr: 3.75, wing: "gt", stripes: true, rim: "#16171c", number: 24, scoop: true },
-  car_arrow: { ...base, paint: "#1846c8", accent: "#0e0f14", L: 4.6, W: 2.05, nose: 0.6, belt: 0.86, tail: 0.98, roof: 1.18, ws: 1.45, roofA: 2.2, roofB: 2.8, rear: 3.75, wf: 0.98, wr: 3.65, R: 0.38, wing: "big", rim: "#c9ccd2" },
+  car_gt3: { ...base, paint: "#f5d300", accent: "#16171c", L: 4.7, W: 2.05, nose: 0.55, belt: 0.86, tail: 0.95, roof: 1.18, ws: 1.5, roofA: 2.2, roofB: 2.85, rear: 3.8, wf: 0.95, wr: 3.75, wing: "gt", stripes: true, rim: "#16171c", number: 3, scoop: true },
+  car_arrow: { ...base, paint: "#1846c8", accent: "#0b1a40", L: 4.6, W: 2.05, nose: 0.6, belt: 0.86, tail: 0.98, roof: 1.18, ws: 1.45, roofA: 2.2, roofB: 2.8, rear: 3.75, wf: 0.98, wr: 3.65, R: 0.38, wing: "big", rim: "#c9ccd2" },
   car_crown: { ...base, paint: "#e8b923", accent: "#16171c", L: 4.7, W: 2.05, nose: 0.55, belt: 0.84, tail: 0.98, roof: 1.12, ws: 1.35, roofA: 2.2, roofB: 2.85, rear: 3.8, wf: 0.95, wr: 3.75, R: 0.38, wing: "gt", rim: "#16171c", caliper: "#16171c", scoop: true },
   car_comet: { ...base, paint: "#9fd8ff", accent: "#ffffff", L: 4.6, nose: 0.55, belt: 0.84, tail: 0.96, roof: 1.14, ws: 1.4, roofA: 2.2, roofB: 2.85, rear: 3.75, wf: 0.95, wr: 3.7, lightbar: true, wing: "duck", rim: "#ffffff", caliper: "#3aa0ff" },
 };

@@ -59,7 +59,7 @@ export default function Garage() {
             )}
             <span className="small muted">You have 🪙 {s.coins} · {ownedCount}/{CARS.length} cars</span>
           </div>
-          <p className="small muted">Drag the car to spin it. Made-up cars with made-up stats, built just for this game.</p>
+          <p className="small muted">Drag the car to spin it. Simplified 3D models built for this game. Stats are rounded.</p>
         </div>
       </div>
       <div className="grid three car-grid">
