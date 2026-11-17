@@ -51,11 +51,6 @@ cars/car_roadster.glb
   sketchfab.com/3d-models/6ad8555df20f4f56985de23a587998cb
   License: CC BY 4.0. Compressed; badges and decals blacked out in code.
 
-cars/car_models.glb
-  "Tesla Model S Plaid" by Valentun (Lals),
-  sketchfab.com/3d-models/9de8855fae324e6cbbb83c9b5288c961
-  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
-
 cars/car_volt.glb
   "Rimac Nevera" by 3dblender_1,
   sketchfab.com/3d-models/a56cbbb94174426c8011031ca6ca24ac
@@ -81,5 +76,6 @@ cars/car_comet.glb
   sketchfab.com/3d-models/8dd1c237238244d1a2a49d764d321b87
   License: CC BY 4.0. Compressed; badges and decals blacked out in code.
 
-Every car has a credited model. If a model fails to load, the app shows a
-shape built in code instead. No logos or badges are used.
+The Tesla Model S is shaped in code (the free model had no paint or
+windows). If any model fails to load, the app shows a shape built in code
+instead. No logos or badges are used.

@@ -810,8 +810,9 @@ function buildBody(s: Spec) {
 // Cars with a real, credited model file (public/models/LICENSE.txt).
 // `turn` rotates the loaded model so its nose points to +x. `body` names
 // paint materials to recolor (the Ferrari only; Sketchfab cars keep their
-// own paint). `hide` drops extra decal meshes. Anything matching BADGE is blacked out: no logos in the app.
-type ModelInfo = { url: string; length: number; turn: number; body?: string[]; hide?: RegExp };
+// own paint). `hide` drops extra decal meshes; `plain` swaps a texture that
+// has logos painted in for a solid color. Anything matching BADGE is blacked out: no logos in the app.
+type ModelInfo = { url: string; length: number; turn: number; body?: string[]; hide?: RegExp; plain?: Record<string, string> };
 const MODELS: Record<string, ModelInfo> = {
   car_rosso: { url: "/models/cars/ferrari-458.glb", length: 4.53, body: ["Body_Color"], turn: -Math.PI / 2 },
   car_vette: { url: "/models/cars/car_vette.glb", length: 4.63, turn: Math.PI / 2 },
@@ -820,14 +821,13 @@ const MODELS: Record<string, ModelInfo> = {
   car_muscle: { url: "/models/cars/car_muscle.glb", length: 4.82, turn: Math.PI / 2 },
   car_rally: { url: "/models/cars/car_rally.glb", length: 4.47, turn: -Math.PI / 2 },
   car_midnight: { url: "/models/cars/car_midnight.glb", length: 4.91, turn: Math.PI },
-  car_tuner: { url: "/models/cars/car_tuner.glb", length: 4.38, turn: Math.PI / 2 },
+  car_tuner: { url: "/models/cars/car_tuner.glb", length: 4.38, turn: -Math.PI / 2 },
   car_roadster: { url: "/models/cars/car_roadster.glb", length: 4.3, turn: Math.PI / 2 },
-  car_models: { url: "/models/cars/car_models.glb", length: 5.02, turn: 0 },
-  car_volt: { url: "/models/cars/car_volt.glb", length: 4.75, turn: Math.PI / 2 },
-  car_gt3: { url: "/models/cars/car_gt3.glb", length: 4.63, turn: Math.PI / 2 },
+  car_volt: { url: "/models/cars/car_volt.glb", length: 4.75, turn: -Math.PI / 2, hide: /nevera|image_5/ }, // name lettering, logo,
+  car_gt3: { url: "/models/cars/car_gt3.glb", length: 4.63, turn: -Math.PI / 2, plain: { c8rVehicle_Exterior_mm_ext1: "#f3c316", c8rVehicle_Exterior_mm_tyre1: "#1c1c1e" } }, // sponsor logos are painted into the livery
   car_arrow: { url: "/models/cars/car_arrow.glb", length: 4.54, turn: 0 },
-  car_crown: { url: "/models/cars/car_crown.glb", length: 4.61, turn: Math.PI / 2 },
-  car_comet: { url: "/models/cars/car_comet.glb", length: 4.43, turn: 0 },
+  car_crown: { url: "/models/cars/car_crown.glb", length: 4.61, turn: -Math.PI / 2 },
+  car_comet: { url: "/models/cars/car_comet.glb", length: 4.43, turn: Math.PI },
 };
 const BADGE = /badge|logo|emblem|decal|crest|lettering|script|license|plate|ferrari_yellow/i;
 const HIDE = /shadow|ground|floor|backdrop|^plane/i;
@@ -850,8 +850,13 @@ function loadModel(id: string, paintHex: string): Promise<THREE.Group> {
       me.castShadow = true;
       const mats = ([] as THREE.Material[]).concat(me.material);
       const names = [me.name, me.parent?.name ?? "", ...mats.map((m) => m.name)].join(" ");
+      const plain = info.plain?.[mats[0].name];
       if (HIDE.test(names) || info.hide?.test(names)) hide.push(me);
-      else if (BADGE.test(names)) me.material = badge;
+      else if (BADGE.test(names)) {
+        // A see-through decal is dropped; a solid emblem is blacked out.
+        if (mats[0].transparent) hide.push(me);
+        else me.material = badge;
+      } else if (plain) me.material = new THREE.MeshPhysicalMaterial({ color: plain, metalness: 0.4, roughness: 0.35, clearcoat: 1 });
       else if (info.body?.includes(mats[0].name)) me.material = paint;
       else if (mats[0].name === "Glass_Gray") me.material = glass;
     });
@@ -860,11 +865,11 @@ function loadModel(id: string, paintHex: string): Promise<THREE.Group> {
     wrap.add(model);
     model.rotation.y = info.turn;
     model.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(model);
+    const box = new THREE.Box3().setFromObject(model, true);
     const size = box.getSize(new THREE.Vector3());
     model.scale.setScalar(info.length / Math.max(size.x, size.z));
     model.updateMatrixWorld(true);
-    const box2 = new THREE.Box3().setFromObject(model);
+    const box2 = new THREE.Box3().setFromObject(model, true);
     const c = box2.getCenter(new THREE.Vector3());
     model.position.set(-c.x, -box2.min.y, -c.z);
     return wrap;
