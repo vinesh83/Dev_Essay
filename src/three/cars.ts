@@ -816,6 +816,18 @@ const MODELS: Record<string, ModelInfo> = {
   car_rosso: { url: "/models/cars/ferrari-458.glb", length: 4.53, body: ["Body_Color"], turn: -Math.PI / 2 },
   car_vette: { url: "/models/cars/car_vette.glb", length: 4.63, turn: Math.PI / 2 },
   car_coupe: { url: "/models/cars/car_coupe.glb", length: 4.57, turn: Math.PI / 2, hide: /PaletteMaterial001\b|W1Mtl|Usagemeral/ }, // side lettering, crest, plate
+  car_wedge: { url: "/models/cars/car_wedge.glb", length: 4.94, turn: Math.PI / 2 },
+  car_muscle: { url: "/models/cars/car_muscle.glb", length: 4.82, turn: Math.PI / 2 },
+  car_rally: { url: "/models/cars/car_rally.glb", length: 4.47, turn: -Math.PI / 2 },
+  car_midnight: { url: "/models/cars/car_midnight.glb", length: 4.91, turn: Math.PI },
+  car_tuner: { url: "/models/cars/car_tuner.glb", length: 4.38, turn: Math.PI / 2 },
+  car_roadster: { url: "/models/cars/car_roadster.glb", length: 4.3, turn: Math.PI / 2 },
+  car_models: { url: "/models/cars/car_models.glb", length: 5.02, turn: 0 },
+  car_volt: { url: "/models/cars/car_volt.glb", length: 4.75, turn: Math.PI / 2 },
+  car_gt3: { url: "/models/cars/car_gt3.glb", length: 4.63, turn: Math.PI / 2 },
+  car_arrow: { url: "/models/cars/car_arrow.glb", length: 4.54, turn: 0 },
+  car_crown: { url: "/models/cars/car_crown.glb", length: 4.61, turn: Math.PI / 2 },
+  car_comet: { url: "/models/cars/car_comet.glb", length: 4.43, turn: 0 },
 };
 const BADGE = /badge|logo|emblem|decal|crest|lettering|script|license|plate|ferrari_yellow/i;
 const HIDE = /shadow|ground|floor|backdrop|^plane/i;

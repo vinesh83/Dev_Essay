@@ -21,4 +21,65 @@ cars/car_coupe.glb
   License: CC BY 4.0. Compressed; crest, side lettering, and plate removed
   in code.
 
-All other cars are shaped in code for this app. No logos or badges are used.
+cars/car_wedge.glb
+  "Lamborghini Aventador LP750-4 SV" by Hari Prasath R (Haris3D),
+  sketchfab.com/3d-models/fec3fec276d240f6b8a660e2a7874435
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_muscle.glb
+  "2020 Ford Shelby GT500" by Galaxy Car Showroom (adrianaflak09),
+  sketchfab.com/3d-models/33045de53b084a8cb215d85c10beea56
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_rally.glb
+  "Subaru Impreza WRX STi 2004 Custom" by MAC ULT ARTS (MACULTARTS),
+  sketchfab.com/3d-models/08296bc950364621b6174a3078bb19e0
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_midnight.glb
+  "Maserati GranTurismo S Stradale" by Mona x Supercars (Car2022),
+  sketchfab.com/3d-models/f5cb2446023b42ab8dbc7a2546a09147
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_tuner.glb
+  "GR Supra 2020" by CARS2024,
+  sketchfab.com/3d-models/a9c3e225932f41bb85d1e424b993de0e
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_roadster.glb
+  "Tesla Roadster" by Mona x Supercars (Car2022),
+  sketchfab.com/3d-models/6ad8555df20f4f56985de23a587998cb
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_models.glb
+  "Tesla Model S Plaid" by Valentun (Lals),
+  sketchfab.com/3d-models/9de8855fae324e6cbbb83c9b5288c961
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_volt.glb
+  "Rimac Nevera" by 3dblender_1,
+  sketchfab.com/3d-models/a56cbbb94174426c8011031ca6ca24ac
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_gt3.glb
+  "2020 Chevrolet Corvette C8.R" by Ddiaz Design (ddiaz-design),
+  sketchfab.com/3d-models/a323ad3ec049485eb1162efd1b960b25
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_arrow.glb
+  "2023 Bugatti Chiron Profilee" by DisneyCars (supercarmodels),
+  sketchfab.com/3d-models/6da5092ee455446cb050e4c6b4a3ac05
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_crown.glb
+  "2020 Koenigsegg Jesko" by Ddiaz Design (ddiaz-design),
+  sketchfab.com/3d-models/c657f51fb0db43e38fea172dfa385287
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+cars/car_comet.glb
+  "2021 Audi R8 V10 Performance Quattro" by DisneyCars (supercarmodels),
+  sketchfab.com/3d-models/8dd1c237238244d1a2a49d764d321b87
+  License: CC BY 4.0. Compressed; badges and decals blacked out in code.
+
+Every car has a credited model. If a model fails to load, the app shows a
+shape built in code instead. No logos or badges are used.
