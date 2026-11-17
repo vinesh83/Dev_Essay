@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScoreRing } from "../components/Results";
 import { toast } from "../components/Toast";
+import { PlanEditor } from "../components/DailyPlan";
 import { SKILLS, type SkillId } from "../data/drills";
 import { promptById } from "../data/prompts";
 import { STEPS } from "../data/process";
@@ -206,6 +207,8 @@ export default function Progress() {
 
       {open && <EssayView essay={open} onClose={() => setOpen(null)} />}
 
+      <PlanEditor />
+
       <div className="card">
         <h2>Settings</h2>
         <div className="grid two">
@@ -216,14 +219,6 @@ export default function Progress() {
           <label>
             Test date
             <input className="field" type="date" value={s.testDate} onChange={(e) => update((st) => void (st.testDate = e.target.value))} />
-          </label>
-          <label>
-            Daily practice goal (minutes)
-            <select className="field" value={s.dailyGoalMin} onChange={(e) => update((st) => void (st.dailyGoalMin = Number(e.target.value)))}>
-              {[15, 20, 30, 45, 60].map((m) => (
-                <option key={m} value={m}>{m} minutes</option>
-              ))}
-            </select>
           </label>
           <label>
             Planning help (training wheels)

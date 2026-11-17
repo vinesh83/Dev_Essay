@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { SkillId } from "../data/drills";
 import type { StepId } from "../data/process";
+import type { PlanDay, PlanSettings } from "./schedule";
 
 // All progress lives in this browser (localStorage). No login needed.
 
@@ -84,6 +85,8 @@ export type State = {
   fingerChecks?: { day: number; ok: boolean }[]; // parent-watched finger checks
   ores?: Partial<Record<"coal" | "iron" | "gold" | "diamond" | "emerald", number>>; // mined ore
   oreNodes?: ("coal" | "iron" | "gold" | "diamond" | "emerald")[]; // ore blocks waiting on the island
+  plan?: PlanSettings; // Daily Plan block lengths (Parents page)
+  planDay?: PlanDay; // today's progress through the Daily Plan
 };
 
 export type ChestTier = "wood" | "silver" | "gold";

@@ -558,3 +558,25 @@ th { font-size: 0.85rem; color: var(--muted); }
 .cost-chip.ok { background: var(--good-soft); border-color: var(--good); }
 @media (min-width: 900px) { .nav { gap: 2px; justify-content: space-between; } .nav button { padding: 8px 10px; } }
 @media (max-width: 600px) { .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; } .nav button { padding: 6px 2px; font-size: .78rem; display: grid; justify-items: center; } .nav button span { font-size: 1.2rem; } }
+
+/* Daily Plan */
+.plan-card h2 { font-size: 1.25rem; }
+.plan-track { display: flex; gap: 10px; margin: 14px 0 10px; overflow-x: auto; padding-bottom: 4px; }
+.plan-step { position: relative; flex: 1; min-width: 118px; display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 2px solid var(--line); }
+.plan-step b { font-size: 0.92rem; line-height: 1.2; }
+.plan-step.now { border-color: #ffd166; background: rgba(255, 209, 102, 0.12); box-shadow: 0 0 18px rgba(255, 209, 102, 0.25); }
+.plan-step.done { opacity: 0.7; border-color: rgba(87, 204, 153, 0.6); }
+.plan-step.later { opacity: 0.55; }
+.plan-step.open { border-color: #57cc99; }
+.plan-icon { font-size: 1.6rem; }
+.plan-arrow { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; opacity: 0.5; }
+.plan-now { justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(0,0,0,0.2); }
+.plan-edit { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.plan-edit label { font-size: 0.85rem; }
+.break-screen { text-align: center; padding: 30px 20px; background: linear-gradient(160deg, rgba(87, 204, 153, 0.18), rgba(76, 201, 240, 0.12)); }
+.break-row { display: flex; justify-content: center; align-items: center; gap: 40px; margin: 18px 0; flex-wrap: wrap; }
+.breathe { width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, rgba(87,204,153,0.55), rgba(76,201,240,0.15)); animation: breathe 8s ease-in-out infinite; font-weight: 800; letter-spacing: 0.08em; }
+@keyframes breathe { 0%, 100% { transform: scale(0.7); } 50% { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .breathe { animation: none; } }
+.break-clock { font-size: 3rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.locked-screen { padding: 34px 20px; }

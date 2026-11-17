@@ -5,6 +5,8 @@ import Hero from "../components/Hero";
 import JourneyMap from "../components/JourneyMap";
 import PracticeRing from "../components/PracticeRing";
 import QuestCalendar from "../components/QuestCalendar";
+import { PlanTrack } from "../components/DailyPlan";
+import { currentBlock } from "../lib/schedule";
 import Scene from "../components/Scene";
 import { CARDS } from "../data/cards";
 import { SKILLS } from "../data/drills";
@@ -29,6 +31,7 @@ export default function Home() {
   const goal = s.dailyGoalMin * 60;
   const minsLeft = Math.max(0, Math.ceil((goal - secs) / 60));
   const nextTask = tasks.find((x) => !missionIsDone(s, x.id));
+  const block = currentBlock(s);
   const found = CARDS.filter((c) => s.collection[c.id]).length;
 
   if (!s.diagnosticDone) {
@@ -61,16 +64,18 @@ export default function Home() {
             <PracticeRing seconds={secs} goalMin={s.dailyGoalMin} size={64} />
             <div>
               <b>{secs >= goal ? "Daily training complete! 🏆" : `${minsLeft} minutes left today`}</b>
-              <div className="small muted">Practice {s.dailyGoalMin} min a day to earn a Golden Chest.</div>
+              <div className="small muted">Finish {s.dailyGoalMin} min of work today to earn a Golden Chest.</div>
             </div>
           </div>
           {secs < goal && (
-            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((nextTask?.route ?? "typing") as Route)}>
+            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((block?.id === "break" ? "home" : block?.route ?? nextTask?.route ?? "typing") as Route)}>
               {secs > 0 ? "Keep training ▶" : "Start today's training ▶"}
             </button>
           )}
         </div>
       </Scene>
+
+      <PlanTrack />
 
       <h2 className="section-title">Today's Quests <span className="muted small">({doneCount}/{tasks.length} done · finish all for +25 coins)</span></h2>
       <div className="grid three">
@@ -135,7 +140,7 @@ export default function Home() {
               <p style={{ margin: 0 }}>
                 Creatures found: <b>{found}/{CARDS.length}</b>
               </p>
-              <p className="small muted">Chests come from finishing essays, typing levels, drills, and your daily 30 minutes.</p>
+              <p className="small muted">Chests come from finishing essays, typing levels, drills, and your daily plan.</p>
               <button className="btn ghost" onClick={() => go("cards")}>See album</button>
             </div>
           </div>

@@ -8,6 +8,9 @@ import { setCoinMultiplier, setXpHook } from "./lib/store";
 import { onXp } from "./lib/mining";
 import { Toaster, toast } from "./components/Toast";
 import { isCounting, usePracticeClock } from "./lib/session";
+import { BreakScreen, LockedScreen } from "./components/DailyPlan";
+import { currentBlock, routeOpen, setPlanListener, settings, workMinutes } from "./lib/schedule";
+import { update } from "./lib/store";
 import { level, practiceToday, useStore, xpForLevel } from "./lib/store";
 import Collection from "./pages/Collection";
 import Diagnostic from "./pages/Diagnostic";
@@ -60,6 +63,25 @@ export default function App() {
 
   useEffect(() => music.resumeOnGesture(), []);
 
+  // The Daily Plan sets the daily goal, and moves Dev to the next block.
+  const planOn = settings(s).on;
+  const goalMin = workMinutes(s);
+  useEffect(() => {
+    const want = planOn ? goalMin : 30;
+    if (s.dailyGoalMin !== want) update((st) => void (st.dailyGoalMin = want));
+  }, [planOn, goalMin, s.dailyGoalMin]);
+  useEffect(() => {
+    setPlanListener((done, next) => {
+      if (!next) return;
+      if (next.id === "explore") toast(`✅ ${done.title} done! 🎮 Free explore is open. Great work today!`);
+      else if (next.id === "break") toast(`✅ ${done.title} done! Time for a ${next.minutes}-minute break.`);
+      else {
+        toast(`✅ ${done.title} done! Next: ${next.icon} ${next.title}`);
+        go(next.route as Route);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const on = () => {
       setRoute(readHash());
@@ -81,6 +103,7 @@ export default function App() {
   const navRoute = route === "brainstorm" || route === "mock" ? "write" : route;
   const secs = practiceToday(s);
   const live = isCounting(route);
+  const block = currentBlock(s);
 
   return (
     <div className="app">
@@ -118,12 +141,18 @@ export default function App() {
         <nav className="nav">
           {NAV.map(([r, icon, label]) => (
             <button key={r} className={navRoute === r ? "on" : ""} onClick={() => go(r)}>
-              <span aria-hidden>{icon}</span> {label}
+              <span aria-hidden>{routeOpen(s, r) ? icon : "🔒"}</span> {label}
             </button>
           ))}
         </nav>
       </header>
       <main>
+        {block?.id === "break" && route !== "progress" ? (
+          <BreakScreen />
+        ) : !routeOpen(s, route) ? (
+          <LockedScreen route={route} />
+        ) : (
+        <>
         {route === "home" && <Home />}
         {route === "typing" && <Typing />}
         {route === "drills" && <Drills key={arg ?? "mixed"} focus={arg} />}
@@ -137,6 +166,8 @@ export default function App() {
         {route === "garage" && <Garage />}
         {route === "workshop" && <Workshop />}
         {route === "lessons" && <Lessons key={arg ?? "hub"} id={arg} />}
+        </>
+        )}
       </main>
       {chestOpen && <ChestModal onClose={() => setChestOpen(false)} />}
       <Toaster />

@@ -9,6 +9,7 @@ import { PROMPTS, promptById, type Prompt } from "../data/prompts";
 import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } from "../data/process";
 import { analyze } from "../lib/analyze";
 import { nextPrompt } from "../lib/coach";
+import { mockTurnedIn } from "../lib/schedule";
 import { gradeEssay } from "../lib/grade";
 import { HELP_INFO, helpLevel, planComplete, toNextLevel } from "../lib/scaffold";
 import { addXp, checkBadges, getState, giveChest, markMission, uid, update, type Plan, type RubricScore } from "../lib/store";
@@ -429,6 +430,7 @@ function MockTest({ prompt, mode, onFinish, onAgain }: { prompt: Prompt; mode: "
       });
       addXp(coins);
       if (mode === "mock" && markMission("mock")) toast("🎉 Daily quest complete! +25 bonus coins");
+      if (mode === "mock") mockTurnedIn();
       giveChest(mode === "mock" ? "gold" : "silver", mode === "mock" ? "finishing a 90-minute mock test" : "finishing your starting check");
       toastBadges(checkBadges());
       setResult({ score, coins });

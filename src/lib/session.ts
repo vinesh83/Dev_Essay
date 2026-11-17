@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import { giveChest, getState, today, update } from "./store";
+import { addPlanSeconds, tickBreak } from "./schedule";
 
 // Daily practice clock. It counts a second only when Dev is on a practice
 // screen, the tab is visible, and he pressed a key or clicked in the last
-// 60 seconds. Hitting the daily goal (30 min) earns a gold treasure chest.
+// 60 seconds. Hitting the daily goal (the Daily Plan's work minutes) earns a gold treasure chest.
 
 const PRACTICE_ROUTES = new Set(["typing", "drills", "write", "brainstorm", "mock", "diagnostic", "lessons"]);
 const IDLE_MS = 60_000;
@@ -34,6 +35,7 @@ export function usePracticeClock(route: string, onGoal: () => void) {
       if (!pending.current) return;
       const add = pending.current;
       pending.current = 0;
+      addPlanSeconds(route, add);
       const day = String(today());
       let hitGoal = false;
       update((s) => {
@@ -54,6 +56,7 @@ export function usePracticeClock(route: string, onGoal: () => void) {
     };
     const tick = setInterval(() => {
       if (isCounting(route)) pending.current += 1;
+      tickBreak();
       if (pending.current >= 5) flush();
     }, 1000);
     return () => {
