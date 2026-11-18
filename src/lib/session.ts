@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { giveChest, getState, today, update } from "./store";
 import { addPlanSeconds, tickBreak } from "./schedule";
+import { lightStreak } from "./streak";
 
 // Daily practice clock. It counts a second only when Dev is on a practice
 // screen, the tab is visible, and he pressed a key or clicked in the last
@@ -51,6 +52,7 @@ export function usePracticeClock(route: string, onGoal: () => void) {
       });
       if (hitGoal) {
         giveChest("gold", `${getState().dailyGoalMin} minutes of practice today`);
+        lightStreak();
         onGoal();
       }
     };

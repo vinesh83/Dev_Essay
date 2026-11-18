@@ -7,7 +7,7 @@ import type { Prompt } from "../data/prompts";
 import type { Help } from "../lib/scaffold";
 import type { Idea, Plan } from "../lib/store";
 import type { ParaKind } from "../lib/structure";
-import { JOBS_FOR, LessonReminder, ParaChecks, TransitionBank } from "./StructureTools";
+import { JOBS_FOR, LessonReminder, ParaMission, TransitionBank } from "./StructureTools";
 
 // The guided thinking steps: brainstorm both sides, test each reason, pick a
 // side, build the outline, and (with training wheels) write one paragraph at
@@ -484,6 +484,7 @@ export function ParagraphDraft({ plan, paras, setParas, onDone }: { plan: Plan; 
           </button>
           {open === i && (
             <div className="para-body">
+              <ParaMission kind={p.kind} text={vals[i]} />
               <div className="para-plan">🍔 Your plan: <div>{p.plan}</div></div>
               {p.kind === "intro" ? (
                 <Chips items={p.starters} onPick={(s) => set(i, withStarter(vals[i], s))} />
@@ -494,7 +495,6 @@ export function ParagraphDraft({ plan, paras, setParas, onDone }: { plan: Plan; 
                 </details>
               )}
               <textarea className="essay-box para-box" value={vals[i]} spellCheck={false} autoCorrect="off" autoCapitalize="off" onChange={(e) => set(i, e.target.value)} placeholder="Write this paragraph here…" />
-              <ParaChecks kind={p.kind} text={vals[i]} />
               <div className="row">
                 <button type="button" className="btn ghost small-btn" onClick={() => setSample(sample === i ? null : i)}>{sample === i ? "Hide sample" : "👀 Show a sample paragraph"}</button>
                 <LessonReminder kind={p.kind} />

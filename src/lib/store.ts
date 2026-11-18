@@ -88,6 +88,12 @@ export type State = {
   plan?: PlanSettings; // Daily Plan block lengths (Parents page)
   planDay?: PlanDay; // today's progress through the Daily Plan
   driveCoins?: { day: number; n: number }; // Road Trip coins picked up today (capped)
+  freezes?: number; // streak freezes held (max 2)
+  streakBest?: number;
+  streakDays?: number[]; // recent days the flame was lit
+  frozenDays?: number[]; // recent days a freeze covered
+  milestones?: number[]; // streak milestones already paid
+  lostStreak?: { count: number; day: number }; // last broken streak, for a parent restore
 };
 
 export type ChestTier = "wood" | "silver" | "gold";
@@ -165,7 +171,7 @@ export function useStore(): State {
 
 export const today = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 
-/** Award XP and coins, and keep the daily streak going. */
+/** Award XP and coins. (The streak lights only when the day's work is done: see streak.ts.) */
 let coinMult = () => 1;
 let xpHook: (n: number) => void = () => {};
 /** Mining listens to XP awards to drop ore blocks. */
@@ -177,11 +183,6 @@ export function addXp(n: number, coins = n) {
   update((s) => {
     s.xp += n;
     s.coins += Math.round(coins * coinMult());
-    const d = today();
-    if (s.streak.lastDay !== d) {
-      s.streak.count = s.streak.lastDay === d - 1 ? s.streak.count + 1 : 1;
-      s.streak.lastDay = d;
-    }
   });
   checkBadges();
   xpHook(n);

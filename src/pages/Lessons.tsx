@@ -5,6 +5,7 @@ import { Coach } from "../components/Thinking";
 import { toast, toastBadges } from "../components/Toast";
 import { LESSONS, lessonById, type Exercise, type Lesson } from "../data/lessons";
 import { sfx } from "../lib/sfx";
+import { lessonFinished } from "../lib/schedule";
 import { addXp, checkBadges, finishLesson, markMission, useStore, type State } from "../lib/store";
 import { splitTransitions } from "../lib/structure";
 
@@ -73,6 +74,7 @@ function LessonPlayer({ lesson }: { lesson: Lesson }) {
     const stars = misses <= 1 ? 3 : misses <= 3 ? 2 : 1;
     const first = finishLesson(lesson.id, stars);
     markMission("lesson");
+    lessonFinished();
     toastBadges(checkBadges());
     sfx.fanfare();
     setResult({ stars, first });

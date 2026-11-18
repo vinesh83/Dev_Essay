@@ -38,8 +38,8 @@ export function PlanTrack() {
             <div key={b.id} className={`plan-step ${st}`}>
               <div className="plan-icon">{st === "done" ? "✅" : st === "later" ? "🔒" : b.icon}</div>
               <b>{b.title}</b>
-              <span className="small muted">{b.id === "mock" ? "until you turn it in" : `${b.minutes} min`}</span>
-              {b.id !== "break" && b.id !== "explore" && b.id !== "mock" && (
+              <span className="small muted">{b.id === "mock" ? "until you turn it in" : b.id === "lesson" ? "until you finish it" : `${b.minutes} min`}</span>
+              {b.id !== "break" && b.id !== "explore" && b.id !== "mock" && b.id !== "lesson" && (
                 <div className="bar" style={{ height: 6 }}>
                   <div style={{ width: `${pct}%` }} />
                 </div>
@@ -55,7 +55,7 @@ export function PlanTrack() {
             <b>Now: {cur.icon} {cur.title}.</b> {cur.detail}
           </span>
           {cur.id !== "break" && (
-            <button className="btn big" onClick={() => go(cur.route as Route)}>
+            <button className="btn big" onClick={() => go(cur.route as Route, cur.arg)}>
               Go ▶
             </button>
           )}
@@ -110,16 +110,16 @@ export function LockedScreen({ route }: { route: string }) {
       </p>
       <p>
         <b>Now: {cur.icon} {cur.title}</b>
-        {cur.id !== "mock" && <> · about {left} min left</>}
+        {cur.id !== "mock" && cur.id !== "lesson" && <> · about {left} min left</>}
       </p>
-      <button className="btn big" onClick={() => go(cur.route as Route)}>
+      <button className="btn big" onClick={() => go(cur.route as Route, cur.arg)}>
         Go to {cur.title} ▶
       </button>
     </div>
   );
 }
 
-const LABEL: Record<BlockId, string> = { warmup: "Warm-up", typing: "Typing", break: "Break", writing: "Writing", mock: "Mock test", review: "Score review", explore: "Free explore" };
+const LABEL: Record<BlockId, string> = { warmup: "Warm-up", typing: "Typing", break: "Break", lesson: "Lesson", writing: "Writing", mock: "Mock test", review: "Score review", explore: "Free explore" };
 
 /** Parents page: block lengths, on/off, and a one-day unlock. */
 export function PlanEditor() {
@@ -153,7 +153,7 @@ export function PlanEditor() {
     <div className="card">
       <h2>🗓️ Daily Plan</h2>
       <p className="muted small">
-        Dev does the blocks in order. Each block unlocks when the one before it is done. Typing and writing count only active time (the clock pauses after 60 seconds idle). Road Trip, the Garage, Shop, Cards, and Craft open at Free Explore time. The mock test block ends when he turns the essay in. Set a block to 0 to skip it.
+        Dev does the blocks in order. Each block unlocks when the one before it is done. Typing and writing count only active time (the clock pauses after 60 seconds idle). Road Trip, the Garage, Shop, Cards, and Craft open at Free Explore time. The lesson block ends when he finishes the lesson (picked from his weakest score area), and the mock test block when he turns the essay in. Set a block to 0 to skip it.
       </p>
       <label className="row" style={{ gap: 8, marginBottom: 12 }}>
         <input type="checkbox" checked={p.on} onChange={(e) => setPlan((pl) => void (pl.on = e.target.checked))} />

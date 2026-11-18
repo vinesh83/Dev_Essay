@@ -6,6 +6,7 @@ import JourneyMap from "../components/JourneyMap";
 import PracticeRing from "../components/PracticeRing";
 import QuestCalendar from "../components/QuestCalendar";
 import { PlanTrack } from "../components/DailyPlan";
+import { StreakCard } from "../components/Streak";
 import { currentBlock } from "../lib/schedule";
 import Scene from "../components/Scene";
 import { CARDS } from "../data/cards";
@@ -68,7 +69,7 @@ export default function Home() {
             </div>
           </div>
           {secs < goal && (
-            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((block?.id === "break" ? "home" : block?.route ?? nextTask?.route ?? "typing") as Route)}>
+            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((block?.id === "break" ? "home" : block?.route ?? nextTask?.route ?? "typing") as Route, block?.id === "break" ? undefined : block?.arg)}>
               {secs > 0 ? "Keep training ▶" : "Start today's training ▶"}
             </button>
           )}
@@ -76,6 +77,7 @@ export default function Home() {
       </Scene>
 
       <PlanTrack />
+      <StreakCard />
 
       <h2 className="section-title">Today's Quests <span className="muted small">({doneCount}/{tasks.length} done · finish all for +25 coins)</span></h2>
       <div className="grid three">

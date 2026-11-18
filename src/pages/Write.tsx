@@ -290,8 +290,14 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
           {((step.id === "draft" && !(help === 1 && !text)) || step.id === "revise" || step.id === "proofread") && (
             <>
               {step.id === "draft" && help === 2 && (
-                <div className="lesson small">
-                  📋 <b>Paragraph checklist:</b> 1) Hook + opinion. 2–4) One paragraph per reason: reason, example, “this shows that.” {plan.counter?.claim ? "5) Answer the other side. " : ""}Last) Restate your opinion in new words.
+                <div className="pm">
+                  <div className="pm-head"><span className="pm-kind">🎯 Your essay recipe</span></div>
+                  <ol className="pm-list">
+                    <li><span className="ml-box">🍞</span><span><b>Introduction:</b> hook, then your opinion, then “because” and your reasons.</span></li>
+                    <li><span className="ml-box">🥩</span><span><b>One paragraph per reason:</b> reason, “For example, …”, then “This shows that …”.</span></li>
+                    {plan.counter?.claim && <li><span className="ml-box">🧀</span><span><b>Other side:</b> “Some people think …” then “However, …”.</span></li>}
+                    <li><span className="ml-box">🍞</span><span><b>Conclusion:</b> “In conclusion,” your opinion in new words, and a final thought.</span></li>
+                  </ol>
                 </div>
               )}
               {step.id !== "proofread" && help <= 2 && (

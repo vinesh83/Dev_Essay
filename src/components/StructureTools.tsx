@@ -46,6 +46,45 @@ export function ParaChecks({ kind, text }: { kind: ParaKind; text: string }) {
   );
 }
 
+const JOB: Record<ParaKind, string> = {
+  intro: "Grab the reader, say your opinion, and preview your reasons.",
+  body: "Give ONE reason, prove it with an example, and explain why it matters.",
+  counter: "Show the other side, then answer it.",
+  end: "Wrap up: say your opinion again in new words and leave a final thought.",
+};
+
+/**
+ * The big, can't-miss checklist above each paragraph box. The next missing
+ * part glows with its tip, so Dev always knows exactly what to write now.
+ */
+export function ParaMission({ kind, text }: { kind: ParaKind; text: string }) {
+  const checks = checkPara(kind, text);
+  const done = checks.filter((c) => c.ok).length;
+  const now = checks.findIndex((c) => !c.ok);
+  const all = now < 0;
+  return (
+    <div className={`pm ${all ? "all" : ""}`}>
+      <div className="pm-head">
+        <span className="pm-kind">🎯 {KIND_LABEL[kind]}</span>
+        <span className="pm-count">{done}/{checks.length} done</span>
+      </div>
+      <p className="pm-job">{JOB[kind]}</p>
+      <ol className="pm-list">
+        {checks.map((c, i) => (
+          <li key={c.label} className={c.ok ? "ok" : i === now ? "now" : ""}>
+            <span className="ml-box">{c.ok ? "✅" : i === now ? "👉" : "⬜"}</span>
+            <span>
+              <b>{c.label}</b>
+              {i === now && <span className="ml-tip">{c.tip}</span>}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {all && <div className="pm-win">🌟 This paragraph has every part. On to the next one!</div>}
+    </div>
+  );
+}
+
 const LESSON_OF: Record<ParaKind, string> = { intro: "intro", body: "body", counter: "counter", end: "conclusion" };
 
 export function LessonReminder({ kind }: { kind: ParaKind }) {

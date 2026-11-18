@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import ChestModal, { ChestIcon } from "./components/ChestModal";
 import MusicControl from "./components/MusicControl";
+import { StreakCelebration } from "./components/Streak";
+import { litToday, streakAlive } from "./lib/streak";
 import PracticeRing from "./components/PracticeRing";
 import { music } from "./lib/music";
 import { coinMultiplier } from "./data/season";
@@ -79,7 +81,9 @@ export default function App() {
       else if (next.id === "break") toast(`✅ ${done.title} done! Time for a ${next.minutes}-minute break.`);
       else {
         toast(`✅ ${done.title} done! Next: ${next.icon} ${next.title}`);
-        go(next.route as Route);
+        // Let the lesson's star screen show for a moment before moving on.
+        if (done.id === "lesson") setTimeout(() => go(next.route as Route, next.arg), 3500);
+        else go(next.route as Route, next.arg);
       }
     });
   }, []);
@@ -131,7 +135,7 @@ export default function App() {
             </button>
           )}
           <MusicControl />
-          <span className="chip" title="Daily streak">🔥 {s.streak.count}</span>
+          <span className="chip" title={litToday(s) ? "Streak lit today" : "Finish today's plan to light the streak"} style={litToday(s) ? undefined : { opacity: 0.6, filter: "grayscale(.7)" }}>🔥 {streakAlive(s)}</span>
           <span className="chip gold" title="Coins">🪙 {s.coins}</span>
           <span className="chip" title={`${s.xp} XP`} style={{ minWidth: 96 }}>
             ⭐ Lv {lv}
@@ -173,6 +177,7 @@ export default function App() {
         )}
       </main>
       {chestOpen && <ChestModal onClose={() => setChestOpen(false)} />}
+      <StreakCelebration />
       <Toaster />
     </div>
   );

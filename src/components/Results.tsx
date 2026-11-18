@@ -1,6 +1,8 @@
 import { go } from "../App";
 import { SKILLS } from "../data/drills";
 import { STEPS, type StepId } from "../data/process";
+import { lessonById } from "../data/lessons";
+import { fixLesson } from "../lib/schedule";
 import { useStore, type RubricScore } from "../lib/store";
 import Scene from "./Scene";
 
@@ -100,6 +102,21 @@ export default function Results({ score, coins, steps, onAgain }: { score: Rubri
           )}
         </div>
       </div>
+      {(() => {
+        const fix = fixLesson(score);
+        const l = lessonById(fix.id);
+        if (!l) return null;
+        return (
+          <div className="card fixit">
+            <div className="fixit-icon">🎓</div>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ margin: 0 }}>Fix-it lesson: {l.title}</h2>
+              <p style={{ margin: "4px 0 0" }}>{fix.why} This short lesson shows you how. It is your next lesson in the Daily Plan too.</p>
+            </div>
+            <button className="btn big" onClick={() => go("lessons", l.id)}>Start the fix-it lesson ▶</button>
+          </div>
+        );
+      })()}
       <div className="card">
         <h2>Train next</h2>
         <div className="row">
