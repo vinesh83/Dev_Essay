@@ -28,7 +28,7 @@ export const DEFAULT_PLAN: PlanSettings = {
 };
 
 /** Screens that are pure fun. They open at Free Explore time. */
-export const FUN_ROUTES = new Set(["shop", "garage", "cards", "workshop"]);
+export const FUN_ROUTES = new Set(["shop", "garage", "cards", "workshop", "drive"]);
 const WRITING_ROUTES = ["lessons", "write", "brainstorm", "drills", "mock"];
 
 export const isWeekend = (d = new Date()) => d.getDay() === 0 || d.getDay() === 6;
@@ -44,7 +44,7 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         { id: "mock", icon: "🎯", title: "Full mock test", detail: "One essay, test rules, just like test day.", minutes: m("mock"), route: "mock", routes: ["mock"] },
         { id: "review", icon: "🔍", title: "Score review and fix-up", detail: "Read your score, then rewrite one paragraph to fix one thing.", minutes: m("review"), route: "write", routes: WRITING_ROUTES },
-        { id: "explore", icon: "🎮", title: "Free explore + weekend chest", detail: "Garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
+        { id: "explore", icon: "🎮", title: "Free explore + weekend chest", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ]
     : [
         { id: "warmup", icon: "🔥", title: "Warm-up", detail: "Home-row check, then your next typing level.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
@@ -53,7 +53,7 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
         timedDay
           ? { id: "writing", icon: "✍️", title: "Writing: full essay", detail: "Plan and write a whole essay. Try to beat each step's test-day time.", minutes: m("writing"), route: "write", routes: WRITING_ROUTES }
           : { id: "writing", icon: "✍️", title: "Writing: lesson + paragraph", detail: "One Writing School lesson, then plan or write a paragraph.", minutes: m("writing"), route: "lessons", routes: WRITING_ROUTES },
-        { id: "explore", icon: "🎮", title: "Free explore", detail: "Garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
+        { id: "explore", icon: "🎮", title: "Free explore", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ];
   return list.filter((b) => b.minutes > 0);
 }

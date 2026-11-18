@@ -51,7 +51,10 @@ export default function Garage() {
           </div>
           <div className="row" style={{ marginTop: 12 }}>
             {owned ? (
-              <button className="btn" onClick={drive}>{s.equipped.car === car.id ? "🅿️ Park it in the garage" : "🔑 Drive it on my island"}</button>
+              <>
+                <button className="btn big" onClick={() => go("drive", car.id)}>🛣️ Road Trip</button>
+                <button className="btn ghost" onClick={drive}>{s.equipped.car === car.id ? "🅿️ Park it in the garage" : "🔑 Park it on my island"}</button>
+              </>
             ) : arrived ? (
               <button className="btn big" disabled={s.coins < car.price} onClick={buy}>Buy for 🪙 {car.price}</button>
             ) : (

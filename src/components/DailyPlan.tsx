@@ -62,7 +62,7 @@ export function PlanTrack() {
         </div>
       ) : (
         <div className="plan-now">
-          <b>🎉 Work done for today! Free explore is open.</b> Visit the Garage, Shop, Cards, or Craft.
+          <b>🎉 Work done for today! Free explore is open.</b> Take a Road Trip, or visit the Garage, Shop, Cards, or Craft.
         </div>
       )}
     </div>
@@ -106,7 +106,7 @@ export function LockedScreen({ route }: { route: string }) {
       <p className="muted" style={{ maxWidth: 520, margin: "0 auto 14px" }}>
         {route === "typing" || route === "write" || route === "lessons" || route === "drills" || route === "mock" || route === "brainstorm"
           ? "Do the blocks in order. This one opens later in today's plan."
-          : "The Garage, Shop, Cards, and Craft open at Free Explore time, after today's work."}
+          : "Road Trip, the Garage, Shop, Cards, and Craft open at Free Explore time, after today's work."}
       </p>
       <p>
         <b>Now: {cur.icon} {cur.title}</b>
@@ -153,7 +153,7 @@ export function PlanEditor() {
     <div className="card">
       <h2>🗓️ Daily Plan</h2>
       <p className="muted small">
-        Dev does the blocks in order. Each block unlocks when the one before it is done. Typing and writing count only active time (the clock pauses after 60 seconds idle). The Garage, Shop, Cards, and Craft open at Free Explore time. The mock test block ends when he turns the essay in. Set a block to 0 to skip it.
+        Dev does the blocks in order. Each block unlocks when the one before it is done. Typing and writing count only active time (the clock pauses after 60 seconds idle). Road Trip, the Garage, Shop, Cards, and Craft open at Free Explore time. The mock test block ends when he turns the essay in. Set a block to 0 to skip it.
       </p>
       <label className="row" style={{ gap: 8, marginBottom: 12 }}>
         <input type="checkbox" checked={p.on} onChange={(e) => setPlan((pl) => void (pl.on = e.target.checked))} />

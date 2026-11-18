@@ -22,12 +22,13 @@ import Progress from "./pages/Progress";
 import Shop from "./pages/Shop";
 import Typing from "./pages/Typing";
 import Workshop from "./pages/Workshop";
+import Drive from "./pages/Drive";
 import Write from "./pages/Write";
 
 setCoinMultiplier(coinMultiplier);
 setXpHook(onXp);
 
-export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic" | "lessons" | "garage" | "workshop";
+export type Route = "home" | "typing" | "drills" | "write" | "brainstorm" | "mock" | "progress" | "shop" | "cards" | "diagnostic" | "lessons" | "garage" | "workshop" | "drive";
 
 const NAV: [Route, string, string][] = [
   ["home", "🏠", "Home"],
@@ -38,6 +39,7 @@ const NAV: [Route, string, string][] = [
   ["cards", "🃏", "Cards"],
   ["shop", "🛒", "Shop"],
   ["garage", "🏎️", "Garage"],
+  ["drive", "🛣️", "Road Trip"],
   ["workshop", "⚒️", "Craft"],
   ["progress", "📈", "Parents"],
 ];
@@ -165,6 +167,7 @@ export default function App() {
         {route === "diagnostic" && <Diagnostic />}
         {route === "garage" && <Garage />}
         {route === "workshop" && <Workshop />}
+        {route === "drive" && <Drive arg={arg} />}
         {route === "lessons" && <Lessons key={arg ?? "hub"} id={arg} />}
         </>
         )}

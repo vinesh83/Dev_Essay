@@ -87,6 +87,7 @@ export type State = {
   oreNodes?: ("coal" | "iron" | "gold" | "diamond" | "emerald")[]; // ore blocks waiting on the island
   plan?: PlanSettings; // Daily Plan block lengths (Parents page)
   planDay?: PlanDay; // today's progress through the Daily Plan
+  driveCoins?: { day: number; n: number }; // Road Trip coins picked up today (capped)
 };
 
 export type ChestTier = "wood" | "silver" | "gold";
