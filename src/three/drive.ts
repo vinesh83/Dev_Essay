@@ -360,9 +360,9 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     }
 
     car.root.position.copy(pos);
-    car.root.rotation.y = heading;
+    car.root.rotation.y = heading + Math.PI; // car models point their nose to -x
     car.root.rotation.z = falling ? Math.max(-0.6, car.root.rotation.z - dt * 0.8) : 0;
-    car.update(t, speed * dt * 1.4);
+    car.update(t, -speed * dt * 1.4);
     blob.visible = !falling;
     blob.position.set(pos.x, 0.03, pos.z);
     blob.rotation.z = heading;
