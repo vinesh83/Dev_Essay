@@ -919,6 +919,7 @@ export function makeCar(id: string): Car {
             if (me.isMesh) ([] as THREE.Material[]).concat(me.material).forEach((mm) => ((mm as THREE.MeshStandardMaterial).envMap = env));
           });
         root.remove(inner);
+        model.userData.real = true; // loaded models point their nose to -x
         root.add(model);
         const real: THREE.Object3D[] = [];
         model.traverse((o) => {

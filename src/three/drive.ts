@@ -360,9 +360,11 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     }
 
     car.root.position.copy(pos);
-    car.root.rotation.y = heading + Math.PI; // car models point their nose to -x
+    // Coded cars point their nose to +x; loaded models point it to -x.
+    const real = car.root.children.some((c) => c.userData.real);
+    car.root.rotation.y = heading + (real ? Math.PI : 0);
     car.root.rotation.z = falling ? Math.max(-0.6, car.root.rotation.z - dt * 0.8) : 0;
-    car.update(t, -speed * dt * 1.4);
+    car.update(t, (real ? -1 : 1) * speed * dt * 1.4);
     blob.visible = !falling;
     blob.position.set(pos.x, 0.03, pos.z);
     blob.rotation.z = heading;
@@ -381,7 +383,7 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     }
 
     // chase camera
-    const back = speed < -0.5 ? -1 : 1;
+    const back = 1; // keep the camera behind the car, even in reverse
     const want = new THREE.Vector3(pos.x - Math.cos(heading) * 7 * back, (falling ? 3 : pos.y) + 3.2, pos.z + Math.sin(heading) * 7 * back);
     camPos.lerp(want, 1 - Math.exp(-dt * 4));
     camera.position.copy(camPos);
