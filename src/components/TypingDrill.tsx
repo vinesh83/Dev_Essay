@@ -122,10 +122,21 @@ export default function TypingDrill({
     inputRef.current?.focus();
   }, []);
 
-  const onKey = (e: React.KeyboardEvent) => {
+  const [capsWarn, setCapsWarn] = useState(false);
+  // Every key goes through here, from the window listener or the input
+  // fallback. Caps Lock flips a letter's case; accept it rather than
+  // stalling on "wrong key" forever, and show a warning.
+  const handle = (raw: string, caps: boolean) => {
     const st = stats.current;
-    if (st.done || e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-    e.preventDefault();
+    if (st.done || raw.length !== 1) return;
+    let key = raw;
+    const wantCh = line[pos];
+    if (caps && /[a-zA-Z]/.test(key)) {
+      setCapsWarn(true);
+      if (homeOk && wantCh && key.toLowerCase() === wantCh.toLowerCase()) key = wantCh;
+      else key = key.toLowerCase();
+    } else if (capsWarn) setCapsWarn(false);
+    const e = { key };
     if (!homeOk) {
       if (e.key === " ") return;
       if (e.key.toLowerCase() === HOME_SEQ[homeProg]) {
@@ -184,6 +195,37 @@ export default function TypingDrill({
     }
   };
 
+  const handleRef = useRef(handle);
+  handleRef.current = handle;
+  const lastHandled = useRef(0);
+
+  // Listen on the whole window, so a click elsewhere, a toast, or a button
+  // that took focus can never stop typing. The hidden input stays as a
+  // fallback for keyboards that send "Process"/"Unidentified" keys.
+  useEffect(() => {
+    const kd = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return; // Shift, Tab, IME "Process", etc.
+      const t = e.target as HTMLElement | null;
+      if (t && t !== inputRef.current && (t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && (t as HTMLInputElement).type !== "button"))) return;
+      e.preventDefault();
+      lastHandled.current = Date.now();
+      if (document.activeElement !== inputRef.current) inputRef.current?.focus();
+      handleRef.current(e.key, e.getModifierState?.("CapsLock") ?? false);
+    };
+    window.addEventListener("keydown", kd);
+    return () => window.removeEventListener("keydown", kd);
+  }, []);
+
+  const onInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const v = el.value;
+    el.value = "";
+    // Only use typed text when no keydown carried the key (Chromebook IME).
+    if (Date.now() - lastHandled.current < 50) return;
+    for (const ch of v.slice(-1)) handleRef.current(ch, false);
+  };
+
   const nextBase = next ? (SHIFTED[next] ?? next).toLowerCase() : "";
 
   return (
@@ -191,7 +233,7 @@ export default function TypingDrill({
       <input
         ref={inputRef}
         className="hidden-input"
-        onKeyDown={onKey}
+        onInput={onInput}
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
@@ -244,6 +286,7 @@ export default function TypingDrill({
           <span className={`finger-pill ${FINGER[nextBase]?.[0] ?? ""}`}>👉 {fingerFor(next)}</span>
         ) : homeOk ? "Nice!" : null}{" "}
         {errAt !== null && <b style={{ color: "var(--bad)" }}> Oops, try that key again.</b>}
+        {capsWarn && <b style={{ color: "var(--bad)", display: "block" }}>⚠️ Caps Lock is on! Turn it off (Chromebook: press Alt + Search).</b>}
       </p>
       {showKeyboard && (homeOk ? next : HOME_SEQ[homeProg]) && <HandGuide target={homeOk ? (/[a-zA-Z]/.test(next!) ? next! : nextBase) : HOME_SEQ[homeProg]} size={0.9} />}
       <p className="small muted center" style={{ marginTop: 10 }}>
