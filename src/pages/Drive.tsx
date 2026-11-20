@@ -54,6 +54,7 @@ export default function Drive({ arg }: { arg?: string }) {
           },
           onGate: (r) => toast(`🔒 ${r.name} opens at hero level ${r.level}. Keep writing to get there!`),
           onSplash: () => toast("💦 Splash! Back to the island. Stay on the bridges!"),
+          onJump: (s) => toast(s > 0.8 ? `🚀 HUGE jump! ${s.toFixed(1)} seconds of air!` : `🚀 Nice jump! ${s.toFixed(1)} seconds of air!`),
         });
         world.current = w;
         const fit = () => w.resize(canvas.clientWidth, canvas.clientHeight);
@@ -107,7 +108,7 @@ export default function Drive({ arg }: { arg?: string }) {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <span className="small muted">Arrow keys or WASD to drive. Coins today: 🪙 {got}/{COIN_CAP}</span>
+        <span className="small muted">Arrow keys or WASD to drive. Hit the 🚀 ramps fast! Coins today: 🪙 {got}/{COIN_CAP}</span>
       </div>
       <div className="drive-stage">
         {failed ? (

@@ -20,6 +20,7 @@ export type DriveOpts = {
   onCoin?: () => void;
   onGate?: (realm: DriveRealm) => void;
   onSplash?: () => void;
+  onJump?: (seconds: number) => void;
 };
 export type Drive = { resize: (w: number, h: number) => void; setKey: (k: Key, on: boolean) => void; setActive: (on: boolean) => void; dispose: () => void };
 export type Key = "up" | "down" | "left" | "right";
@@ -28,7 +29,14 @@ const S = 4; // island scale
 const R = 10.8; // drivable island radius
 const HALF = 2.3; // half bridge width
 const CAR = 0.6; // car scale (a real car is ~4.5 m long, so ~2.7 units)
+const RAMP_L = 3.6; // ramp length
+const RAMP_H = 1.5; // ramp height at the lip
+const RAMP_W = 3.4; // ramp width
+const G = 26; // gravity in the air
 
+type Ramp = { x: number; z: number; dx: number; dz: number; cx: number; cz: number };
+const FENCE_R = 9.6; // radius of the catch fence past each landing
+const FENCE_SPAN = 0.75; // half-angle of the fence arc
 type Bridge = { a: THREE.Vector3; b: THREE.Vector3; dir: THREE.Vector3; len: number; gate: number | null; to: number };
 
 function label(text: string, color: string) {
@@ -87,20 +95,68 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
   sea.position.y = -16;
   scene.add(sea);
 
+  const rampMat = new THREE.MeshStandardMaterial({ color: "#ff8a1f", roughness: 0.55, emissive: "#5a2400", emissiveIntensity: 0.35 });
+  const stripeMat = new THREE.MeshStandardMaterial({ color: "#fff3c4", roughness: 0.6 });
+  const legMat = new THREE.MeshStandardMaterial({ color: "#5b3a1e", roughness: 0.9 });
+  const rampMesh = (r: Ramp, accent: string) => {
+    const g = new THREE.Group();
+    g.position.set(r.x, 0, r.z);
+    g.rotation.y = Math.atan2(-r.dz, r.dx);
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.lineTo(RAMP_L, 0);
+    shape.lineTo(RAMP_L, RAMP_H);
+    shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: RAMP_W, bevelEnabled: false });
+    geo.translate(0, 0, -RAMP_W / 2);
+    g.add(new THREE.Mesh(geo, rampMat));
+    // Chevron stripes on the slope.
+    const slope = Math.atan2(RAMP_H, RAMP_L);
+    for (let k = 1; k <= 3; k++) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.04, RAMP_W * 0.9), stripeMat);
+      const x = (RAMP_L * k) / 4;
+      s.position.set(x, (RAMP_H * x) / RAMP_L + 0.02, 0);
+      s.rotation.z = slope;
+      g.add(s);
+    }
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, RAMP_H + 1.4, 0.3), legMat);
+      post.position.set(RAMP_L, (RAMP_H + 1.4) / 2, side * (RAMP_W / 2 + 0.2));
+      g.add(post);
+    }
+    const sign = label("🚀 JUMP", accent);
+    sign.scale.set(6, 1.5, 1);
+    sign.position.set(RAMP_L, RAMP_H + 2.3, 0);
+    g.add(sign);
+    return g;
+  };
+  /** Ramp surface height at (x, z), and how far along the ramp. */
+  const rampAt = (x: number, z: number) => {
+    for (const r of ramps) {
+      const px = x - r.x;
+      const pz = z - r.z;
+      const along = px * r.dx + pz * r.dz;
+      const across = -px * r.dz + pz * r.dx;
+      if (along >= 0 && along <= RAMP_L && Math.abs(across) <= RAMP_W / 2) return { r, h: (RAMP_H * along) / RAMP_L, along };
+    }
+    return null;
+  };
+
   // Islands in a zigzag.
   const centers = o.realms.map((_, i) => new THREE.Vector3(i * 36, 0, i % 2 ? 13 : -13));
   const trees: { x: number; z: number; r: number }[] = [];
-  const coins: { obj: THREE.Object3D; x: number; z: number; back: number }[] = [];
+  const coins: { obj: THREE.Object3D; x: number; z: number; y: number; back: number }[] = [];
+  const ramps: Ramp[] = [];
   const coinGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.18, 20);
   const coinMat = new THREE.MeshStandardMaterial({ color: "#ffd54a", metalness: 0.3, roughness: 0.3, emissive: "#c98a00", emissiveIntensity: 0.55 });
-  const addCoin = (x: number, z: number) => {
+  const addCoin = (x: number, z: number, y = 1.1) => {
     const c = new THREE.Mesh(coinGeo, coinMat);
     c.rotation.z = Math.PI / 2;
     const holder = new THREE.Group();
     holder.add(c);
-    holder.position.set(x, 1.1, z);
+    holder.position.set(x, y, z);
     scene.add(holder);
-    coins.push({ obj: holder, x, z, back: 0 });
+    coins.push({ obj: holder, x, z, y, back: 0 });
   };
 
   o.realms.forEach((r, i) => {
@@ -113,11 +169,44 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     sign.position.set(centers[i].x, 9, centers[i].z);
     scene.add(sign);
     if (!r.unlocked) return;
+    // A jump ramp across the island, sideways to the bridges, with coins
+    // in an arc over the landing.
+    const nb = centers[Math.min(i + 1, centers.length - 1)];
+    const pb = centers[Math.max(i - 1, 0)];
+    const axis = nb.clone().sub(pb).setY(0).normalize();
+    const d = new THREE.Vector3(-axis.z, 0, axis.x).multiplyScalar(i % 2 ? -1 : 1);
+    const ramp: Ramp = { x: centers[i].x - d.x * 9.4, z: centers[i].z - d.z * 9.4, dx: d.x, dz: d.z, cx: centers[i].x, cz: centers[i].z };
+    ramps.push(ramp);
+    scene.add(rampMesh(ramp, r.accent));
+    // A curved fence past the landing catches the car before the edge.
+    const base = Math.atan2(d.z, d.x);
+    for (let k = -6; k <= 6; k++) {
+      const a = base + (k / 6) * FENCE_SPAN;
+      const px = centers[i].x + Math.cos(a) * (FENCE_R + 0.5);
+      const pz = centers[i].z + Math.sin(a) * (FENCE_R + 0.5);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 0.35), legMat);
+      post.position.set(px, 0.6, pz);
+      scene.add(post);
+      if (k < 6) {
+        const a2 = base + ((k + 1) / 6) * FENCE_SPAN;
+        const qx = centers[i].x + Math.cos(a2) * (FENCE_R + 0.5);
+        const qz = centers[i].z + Math.sin(a2) * (FENCE_R + 0.5);
+        const len = Math.hypot(qx - px, qz - pz);
+        for (const [y, m] of [[1.15, rampMat], [0.55, stripeMat]] as const) {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 0.2, 0.18), m);
+          rail.position.set((px + qx) / 2, y, (pz + qz) / 2);
+          rail.rotation.y = Math.atan2(-(qz - pz), qx - px);
+          scene.add(rail);
+        }
+      }
+    }
+    for (const [k, off] of [-2.5, 0.5, 3.5].entries()) addCoin(centers[i].x + d.x * off, centers[i].z + d.z * off, k === 1 ? 4.6 : 3.8);
     // Trees near the rim, out of the main driving line. They block the car.
     for (const [k, a] of [0.9, 2.6, 4.4].entries()) {
       const ang = a + i * 0.7;
       const tx = Math.cos(ang) * 8.6;
       const tz = Math.sin(ang) * 8.6;
+      if (Math.abs(-tx * d.z + tz * d.x) < 3.2 || tx * d.x + tz * d.z > 4) continue; // keep the jump lane and fence clear
       const t = voxelTree(new THREE.Color(r.accent).lerp(new THREE.Color("#3f9b4a"), 0.6), 3 + (k % 2));
       t.scale.setScalar(1.6);
       t.position.set(centers[i].x + tx, 0, centers[i].z + tz);
@@ -236,6 +325,9 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
   let speed = 0;
   let vy = 0;
   let falling = false;
+  let air = false;
+  let airT = 0;
+  let pitch = 0;
   let lastIsland = 0;
   const spawn = (i: number) => {
     const next = centers[Math.min(i + 1, centers.length - 1)];
@@ -245,8 +337,19 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     speed = 0;
     vy = 0;
     falling = false;
+    air = false;
   };
   spawn(0);
+  if ((import.meta as unknown as { env: { DEV: boolean } }).env.DEV) {
+    // test hook: line the car up a few units before island i's ramp
+    (window as unknown as { __ramp: (i: number) => void }).__ramp = (i) => {
+      const r = ramps[i];
+      pos.set(r.x - r.dx * 0.8, 0, r.z - r.dz * 0.8);
+      heading = Math.atan2(-r.dz, r.dx);
+      speed = vmax * 0.85;
+    };
+    (window as unknown as { __pos: () => string }).__pos = () => [pos.x, pos.y, pos.z, vy, speed, air, falling, centers[0].x, centers[0].z].map((v) => (typeof v === 'number' ? v.toFixed(1) : v)).join(' ');
+  }
 
   const keys: Record<Key, boolean> = { up: false, down: false, left: false, right: false };
   const KEYMAP: Record<string, Key> = { ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down", ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right" };
@@ -292,7 +395,10 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
       }
     }
 
-    if (!falling) {
+    const y0 = pos.y;
+    const x0 = pos.x;
+    const z0 = pos.z;
+    if (!falling && !air) {
       const thr = (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
       if (thr > 0) speed += accel * dt * (speed < 0 ? 2.2 : 1);
       else if (thr < 0) speed -= accel * dt * (speed > 0 ? 2.2 : 0.6);
@@ -328,12 +434,27 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
           o.onGate?.(o.realms[br.br.to]);
         }
       } else {
-        pos.x = nx;
-        pos.z = nz;
-        if (isl >= 0) lastIsland = isl;
-        else if (!br) {
-          falling = true;
-          vy = 2;
+        const ra = rampAt(nx, nz);
+        if (ra && pos.y < 0.3 && ra.along > RAMP_L * 0.5) {
+          // the tall back of the ramp is a wall
+          speed = -speed * 0.3;
+        } else {
+          pos.x = nx;
+          pos.z = nz;
+          if (isl >= 0) lastIsland = isl;
+          const h = ra ? ra.h : 0;
+          if (pos.y > 0.3 && h < pos.y - 0.25) {
+            // off the lip: launch
+            const r = rampAt(x0, z0)?.r;
+            const m = r ? (Math.cos(heading) * r.dx - Math.sin(heading) * r.dz) * speed : 0;
+            vy = Math.max(0, m) * (RAMP_H / RAMP_L) * 1.15;
+            speed *= 0.8;
+            air = true;
+            airT = 0;
+          } else if (isl < 0 && !br) {
+            falling = true;
+            vy = 2;
+          } else pos.y = h;
         }
       }
       // trees push the car out
@@ -346,6 +467,40 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
           pos.x = tr.x + (dx / d) * min;
           pos.z = tr.z + (dz / d) * min;
           speed *= 0.5;
+        }
+      }
+      // catch fences
+      for (const r of ramps) {
+        const dx = pos.x - r.cx;
+        const dz = pos.z - r.cz;
+        const dist = Math.hypot(dx, dz);
+        if (dist <= FENCE_R || dist > FENCE_R + 1.5) continue;
+        const cosA = (dx * r.dx + dz * r.dz) / dist;
+        if (cosA < Math.cos(FENCE_SPAN)) continue;
+        pos.x = r.cx + (dx / dist) * FENCE_R;
+        pos.z = r.cz + (dz / dist) * FENCE_R;
+        speed *= 0.4;
+      }
+    } else if (air) {
+      vy -= G * dt;
+      airT += dt;
+      pos.x += Math.cos(heading) * speed * dt;
+      pos.z -= Math.sin(heading) * speed * dt;
+      pos.y += vy * dt;
+      const ra = rampAt(pos.x, pos.z);
+      const ground = ra ? ra.h : 0;
+      if (pos.y <= ground) {
+        const isl = onIsland(pos.x, pos.z);
+        if (ra || isl >= 0 || onBridge(pos.x, pos.z)) {
+          pos.y = ground;
+          air = false;
+          vy = 0;
+          speed *= 0.9;
+          if (isl >= 0) lastIsland = isl;
+          if (airT > 0.35) o.onJump?.(airT);
+        } else {
+          air = false;
+          falling = true;
         }
       }
     } else {
@@ -363,10 +518,15 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     // Coded cars point their nose to +x; loaded models point it to -x.
     const real = car.root.children.some((c) => c.userData.real);
     car.root.rotation.y = heading + (real ? Math.PI : 0);
-    car.root.rotation.z = falling ? Math.max(-0.6, car.root.rotation.z - dt * 0.8) : 0;
+    // Nose up on the ramp and in the air, nose down on the way back.
+    const moved = Math.hypot(pos.x - x0, pos.z - z0);
+    const pWant = falling ? -0.6 : moved > 0.001 ? THREE.MathUtils.clamp(Math.atan2(pos.y - y0, moved) * Math.sign(speed || 1), -0.6, 0.6) : 0;
+    pitch += (pWant - pitch) * (1 - Math.exp(-dt * 10));
+    car.root.rotation.z = real ? -pitch : pitch;
     car.update(t, (real ? -1 : 1) * speed * dt * 1.4);
     blob.visible = !falling;
-    blob.position.set(pos.x, 0.03, pos.z);
+    const under = rampAt(pos.x, pos.z);
+    blob.position.set(pos.x, (under ? under.h : 0) + 0.03, pos.z);
     blob.rotation.z = heading;
 
     // coins
@@ -374,8 +534,8 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
       if (c.back > t) continue;
       if (!c.obj.visible) c.obj.visible = true;
       c.obj.rotation.y = t * 2.5;
-      c.obj.position.y = 1.1 + Math.sin(t * 3 + c.x) * 0.15;
-      if (!falling && Math.hypot(pos.x - c.x, pos.z - c.z) < 1.8) {
+      c.obj.position.y = c.y + Math.sin(t * 3 + c.x) * 0.15;
+      if (!falling && Math.hypot(pos.x - c.x, pos.z - c.z) < 1.8 && Math.abs(pos.y + 0.6 - c.y) < 1.8) {
         c.obj.visible = false;
         c.back = t + 25;
         o.onCoin?.();
@@ -394,7 +554,7 @@ export function createDrive(canvas: HTMLCanvasElement, o: DriveOpts): Drive {
     if (t > statusT) {
       statusT = t + 0.25;
       const isl = onIsland(pos.x, pos.z);
-      const place = falling ? "Splash!" : isl >= 0 ? o.realms[isl].name : "On the bridge";
+      const place = falling ? "Splash!" : air ? "🚀 Big air!" : isl >= 0 ? o.realms[isl].name : "On the bridge";
       o.onStatus?.({ mph: Math.round(Math.abs(speed) * (o.top / vmax)), place });
     }
 
