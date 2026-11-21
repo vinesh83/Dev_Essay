@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { go, type Route } from "../App";
-import { blockSecs, blocksFor, breakLeft, currentBlock, dayState, isWeekend, planMinutes, setPlan, settings, unlockToday, workMinutes, type Block, type BlockId } from "../lib/schedule";
+import { WORDS_PER_DAY, blockSecs, blocksFor, breakLeft, currentBlock, dayState, isWeekend, planMinutes, setPlan, settings, unlockToday, workMinutes, type Block, type BlockId } from "../lib/schedule";
 import { useStore, type State } from "../lib/store";
 import Hero from "./Hero";
 
@@ -38,8 +38,8 @@ export function PlanTrack() {
             <div key={b.id} className={`plan-step ${st}`}>
               <div className="plan-icon">{st === "done" ? "✅" : st === "later" ? "🔒" : b.icon}</div>
               <b>{b.title}</b>
-              <span className="small muted">{b.id === "mock" ? "until you turn it in" : b.id === "lesson" ? "until you finish it" : `${b.minutes} min`}</span>
-              {b.id !== "break" && b.id !== "explore" && b.id !== "mock" && b.id !== "lesson" && (
+              <span className="small muted">{b.id === "mock" ? "until you turn it in" : b.id === "lesson" || b.id === "review" ? "until you finish it" : b.id === "writing" ? `${b.minutes} min + ${WORDS_PER_DAY} new words` : `${b.minutes} min`}</span>
+              {b.id !== "break" && b.id !== "explore" && b.id !== "mock" && b.id !== "lesson" && b.id !== "review" && (
                 <div className="bar" style={{ height: 6 }}>
                   <div style={{ width: `${pct}%` }} />
                 </div>
@@ -153,7 +153,7 @@ export function PlanEditor() {
     <div className="card">
       <h2>🗓️ Daily Plan</h2>
       <p className="muted small">
-        Dev does the blocks in order. Each block unlocks when the one before it is done. Typing and writing count only active time (the clock pauses after 60 seconds idle). Road Trip, the Garage, Shop, Cards, and Craft open at Free Explore time. The lesson block ends when he finishes the lesson (picked from his weakest score area), and the mock test block when he turns the essay in. Set a block to 0 to skip it.
+        Dev follows one path, in order. While work remains, the menu is hidden and every screen sends him back to his current step, with a countdown to free play pinned at the top. Typing is a fixed loop (Sentence Sprint, then his current level). The lesson ends when he finishes it. Writing opens today's essay directly (no prompt picking) and saves his draft as he goes, so it carries over to the next day. Writing ends when he turns the essay in, or when its time is up and he has typed at least {WORDS_PER_DAY} new words that day. Time counts only while he is active (the clock pauses after 60 seconds idle). Set a block to 0 to skip it.
       </p>
       <label className="row" style={{ gap: 8, marginBottom: 12 }}>
         <input type="checkbox" checked={p.on} onChange={(e) => setPlan((pl) => void (pl.on = e.target.checked))} />

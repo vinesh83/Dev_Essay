@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ScoreRing } from "../components/Results";
 import { toast } from "../components/Toast";
 import { PlanEditor } from "../components/DailyPlan";
+import ActivityLog from "../components/ActivityLog";
 import { StreakRestore } from "../components/Streak";
 import { SKILLS, type SkillId } from "../data/drills";
 import { promptById } from "../data/prompts";
@@ -209,6 +210,7 @@ export default function Progress() {
       {open && <EssayView essay={open} onClose={() => setOpen(null)} />}
 
       <PlanEditor />
+      <ActivityLog />
       <StreakRestore />
 
       <div className="card">

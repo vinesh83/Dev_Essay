@@ -10,9 +10,11 @@ import { setCoinMultiplier, setXpHook } from "./lib/store";
 import { onXp } from "./lib/mining";
 import { Toaster, toast } from "./components/Toast";
 import { isCounting, usePracticeClock } from "./lib/session";
-import { BreakScreen, LockedScreen } from "./components/DailyPlan";
+import { BreakScreen } from "./components/DailyPlan";
+import PathBar from "./components/PathBar";
+import ParentGate from "./components/ParentGate";
 import { currentBlock, routeOpen, setPlanListener, settings, workMinutes } from "./lib/schedule";
-import { update } from "./lib/store";
+import { logEvent, update } from "./lib/store";
 import { level, practiceToday, useStore, xpForLevel } from "./lib/store";
 import Collection from "./pages/Collection";
 import Diagnostic from "./pages/Diagnostic";
@@ -56,7 +58,8 @@ export function go(route: Route, arg?: string) {
 }
 
 let showChests: () => void = () => {};
-export const openChests = () => showChests();
+let chestsAllowed = true;
+export const openChests = () => chestsAllowed && showChests();
 
 export default function App() {
   const s = useStore();
@@ -104,12 +107,30 @@ export default function App() {
   const onGoal = useCallback(() => toast(`🏆 ${s.dailyGoalMin} minutes done today! +30 coins and a Golden Chest!`), [s.dailyGoalMin]);
   usePracticeClock(route, onGoal);
 
+  const block = currentBlock(s);
+  const onPath = !!block;
+  chestsAllowed = !onPath;
+
+  // Log every screen he opens, for the Parents page.
+  useEffect(() => logEvent("open", arg, route), [route, arg]);
+
+  // One path: while today's work remains, every screen except Home and
+  // the Parents page sends him straight to the current step.
+  const exempt = route === "home" || route === "progress" || route === "diagnostic";
+  const offPath = !!block && block.id !== "break" && !exempt && (route !== block.route || (!!block.arg && arg !== block.arg));
+  useEffect(() => {
+    if (!offPath || !block) return;
+    logEvent("blocked", `${route}${arg ? "/" + arg : ""} → ${block.title}`, route);
+    toast(`🔒 Not yet! First: ${block.icon} ${block.title}`);
+    go(block.route as Route, block.arg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offPath, route, arg]);
+
   const lv = level(s.xp);
   const pct = ((s.xp - xpForLevel(lv)) / (xpForLevel(lv + 1) - xpForLevel(lv))) * 100;
   const navRoute = route === "brainstorm" || route === "mock" ? "write" : route;
   const secs = practiceToday(s);
   const live = isCounting(route);
-  const block = currentBlock(s);
 
   return (
     <div className="app">
@@ -129,12 +150,17 @@ export default function App() {
               <small>{live ? "timer running" : secs >= s.dailyGoalMin * 60 ? "goal done!" : "paused"}</small>
             </span>
           </span>
-          {s.chests.length > 0 && (
+          {s.chests.length > 0 && !onPath && (
             <button className="chip chest-chip" onClick={() => setChestOpen(true)} title="Open treasure">
               <ChestIcon tier={s.chests[0].tier} size={30} shaking /> {s.chests.length}
             </button>
           )}
           <MusicControl />
+          {onPath && (
+            <button className="chip" onClick={() => go("progress")} title="Parents">
+              👪
+            </button>
+          )}
           <span className="chip" title={litToday(s) ? "Streak lit today" : "Finish today's plan to light the streak"} style={litToday(s) ? undefined : { opacity: 0.6, filter: "grayscale(.7)" }}>🔥 {streakAlive(s)}</span>
           <span className="chip gold" title="Coins">🪙 {s.coins}</span>
           <span className="chip" title={`${s.xp} XP`} style={{ minWidth: 96 }}>
@@ -144,20 +170,21 @@ export default function App() {
             </div>
           </span>
         </div>
-        <nav className="nav">
-          {NAV.map(([r, icon, label]) => (
-            <button key={r} className={navRoute === r ? "on" : ""} onClick={() => go(r)}>
-              <span aria-hidden>{routeOpen(s, r) ? icon : "🔒"}</span> {label}
-            </button>
-          ))}
-        </nav>
+        {!onPath && (
+          <nav className="nav">
+            {NAV.map(([r, icon, label]) => (
+              <button key={r} className={navRoute === r ? "on" : ""} onClick={() => go(r)}>
+                <span aria-hidden>{routeOpen(s, r) ? icon : "🔒"}</span> {label}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
+      {onPath && route !== "progress" && <PathBar route={route} />}
       <main>
         {block?.id === "break" && route !== "progress" ? (
           <BreakScreen />
-        ) : !routeOpen(s, route) ? (
-          <LockedScreen route={route} />
-        ) : (
+        ) : offPath ? null : (
         <>
         {route === "home" && <Home />}
         {route === "typing" && <Typing />}
@@ -165,7 +192,11 @@ export default function App() {
         {route === "write" && <Write key={"w" + (arg ?? "")} mode="practice" promptId={arg} />}
         {route === "brainstorm" && <Write key={"p" + (arg ?? "")} mode="plan" promptId={arg} />}
         {route === "mock" && <Write key={"m" + (arg ?? "")} mode="mock" promptId={arg} />}
-        {route === "progress" && <Progress />}
+        {route === "progress" && (
+          <ParentGate>
+            <Progress />
+          </ParentGate>
+        )}
         {route === "shop" && <Shop />}
         {route === "cards" && <Collection />}
         {route === "diagnostic" && <Diagnostic />}

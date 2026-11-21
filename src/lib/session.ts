@@ -11,6 +11,9 @@ const PRACTICE_ROUTES = new Set(["typing", "drills", "write", "brainstorm", "moc
 const IDLE_MS = 60_000;
 
 let lastInput = Date.now();
+let pendingNow = 0;
+/** Active seconds counted but not yet saved (saved every 5 seconds). */
+export const pendingSecs = () => pendingNow;
 export const markActive = () => (lastInput = Date.now());
 
 export function isCounting(route: string) {
@@ -36,6 +39,7 @@ export function usePracticeClock(route: string, onGoal: () => void) {
       if (!pending.current) return;
       const add = pending.current;
       pending.current = 0;
+      pendingNow = 0;
       addPlanSeconds(route, add);
       const day = String(today());
       let hitGoal = false;
@@ -58,6 +62,7 @@ export function usePracticeClock(route: string, onGoal: () => void) {
     };
     const tick = setInterval(() => {
       if (isCounting(route)) pending.current += 1;
+      pendingNow = pending.current;
       tickBreak();
       if (pending.current >= 5) flush();
     }, 1000);

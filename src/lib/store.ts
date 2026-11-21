@@ -94,7 +94,27 @@ export type State = {
   frozenDays?: number[]; // recent days a freeze covered
   milestones?: number[]; // streak milestones already paid
   lostStreak?: { count: number; day: number }; // last broken streak, for a parent restore
+  draft?: Draft; // the practice essay in progress, kept across days
+  log?: LogEntry[]; // activity log for the Parents page (screens visited, blocks done)
 };
+
+/** A practice essay in progress. Saved on every change so nothing is lost. */
+export type Draft = {
+  promptId: string;
+  stepIdx: number;
+  done: StepId[];
+  highlights: number[];
+  answers: (number | null)[];
+  plan: Plan;
+  paras: string[];
+  text: string;
+  checks: Record<string, boolean>;
+  seconds: number;
+  started: string; // ISO
+};
+
+/** t = ms timestamp, r = screen (route), e = event ("open", "blocked", "done", ...), x = detail. */
+export type LogEntry = { t: number; r: string; e: string; x?: string };
 
 export type ChestTier = "wood" | "silver" | "gold";
 
@@ -269,6 +289,15 @@ export function importData(json: string) {
 export function resetAll() {
   state = fresh();
   save();
+}
+
+/** Add one line to the activity log (kept to the last 2,000 lines). */
+export function logEvent(e: string, x?: string, r = location.hash.replace(/^#\/?/, "").split("/")[0] || "home") {
+  update((s) => {
+    const log = s.log ?? [];
+    log.push({ t: Date.now(), r, e, ...(x ? { x } : {}) });
+    s.log = log.length > 2000 ? log.slice(-2000) : log;
+  });
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);

@@ -1,5 +1,6 @@
 import { LESSONS } from "../data/lessons";
-import { addXp, getState, giveChest, today, update, type State } from "./store";
+import { PROMPTS } from "../data/prompts";
+import { addXp, getState, giveChest, logEvent, today, update, type State } from "./store";
 import { lightStreak } from "./streak";
 
 // The Daily Plan: a fixed order of timed blocks. Each work block stays
@@ -21,23 +22,24 @@ export type Block = {
 };
 
 export type Lengths = Partial<Record<BlockId, number>>;
-export type PlanSettings = { on: boolean; weekday: Lengths; weekend: Lengths };
-export type PlanDay = { day: number; secs: Partial<Record<BlockId, number>>; done: BlockId[]; breakEnd?: number; unlocked?: boolean; bonus?: boolean };
+export type PlanSettings = { on: boolean; weekday: Lengths; weekend: Lengths; v?: number };
+export type PlanDay = { day: number; secs: Partial<Record<BlockId, number>>; done: BlockId[]; breakEnd?: number; unlocked?: boolean; bonus?: boolean; words0?: number; promptId?: string };
 
 export const DEFAULT_PLAN: PlanSettings = {
   on: true,
-  // 45 minutes in all: 35 of work, a 5-minute break, 5 of free explore.
-  weekday: { warmup: 5, typing: 10, break: 5, lesson: 5, writing: 15, explore: 5 },
+  // 45 minutes in all, one straight path: 10 typing, a 5-minute lesson,
+  // 25 of real essay writing, then 5 of free play.
+  weekday: { warmup: 0, typing: 10, break: 0, lesson: 5, writing: 25, explore: 5 },
+  v: 2,
   weekend: { warmup: 10, break: 5, mock: 90, review: 15, explore: 10 },
 };
 
 /** Screens that are pure fun. They open at Free Explore time. */
 export const FUN_ROUTES = new Set(["shop", "garage", "cards", "workshop", "drive"]);
-const WRITING_ROUTES = ["lessons", "write", "brainstorm", "drills", "mock"];
 
 export const isWeekend = (d = new Date()) => d.getDay() === 0 || d.getDay() === 6;
-// Weekday settings saved before the lesson block existed start over at the new defaults.
-const savedWeekday = (s: State) => (s.plan?.weekday && s.plan.weekday.lesson !== undefined ? s.plan.weekday : {});
+// Weekday settings saved before the forced path (v2) start over at the new defaults.
+const savedWeekday = (s: State) => (s.plan?.v === 2 && s.plan.weekday ? s.plan.weekday : {});
 export const settings = (s: State): PlanSettings => ({ ...DEFAULT_PLAN, ...s.plan, weekday: { ...DEFAULT_PLAN.weekday, ...savedWeekday(s) }, weekend: { ...DEFAULT_PLAN.weekend, ...s.plan?.weekend } });
 
 // Which rubric part each lesson fixes. The weakest part of the last scored
@@ -59,17 +61,36 @@ export function todaysLesson(s: State): { id: string; why: string } {
   return { id: next.id, why: "Next up in Writing School." };
 }
 
+/** Words in the essay draft Dev is working on. */
+export const draftWords = (s: State) => {
+  const t = s.draft ? [s.draft.text, ...(s.draft.text ? [] : s.draft.paras)].join(" ") : "";
+  return t.trim() ? t.trim().split(/\s+/).length : 0;
+};
+/** New words he must type into the essay each day before the writing block can end on time. */
+export const WORDS_PER_DAY = 60;
+export const wordsToday = (s: State) => Math.max(0, draftWords(s) - (dayState(s).words0 ?? draftWords(s)));
+
+/** Today's essay prompt: the unfinished draft, else one fixed fresh prompt for the day. */
+export function todaysPrompt(s: State): string {
+  if (s.draft?.promptId) return s.draft.promptId;
+  const d = dayState(s);
+  if (d.promptId) return d.promptId;
+  const used = new Set(s.essays.map((e) => e.promptId));
+  const fresh = PROMPTS.filter((p) => !used.has(p.id));
+  const list = fresh.length ? fresh : PROMPTS;
+  return list[today() % list.length].id;
+}
+
 export function blocksFor(s: State, weekend = isWeekend()): Block[] {
   const len = weekend ? settings(s).weekend : settings(s).weekday;
   const m = (id: BlockId) => len[id] ?? 0;
-  const timedDay = today() % 2 === 0;
   const lesson = todaysLesson(s);
   const list: Block[] = weekend
     ? [
         { id: "warmup", icon: "🔥", title: "Typing warm-up", detail: "Home-row check, then Sentence Sprints.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         { id: "mock", icon: "🎯", title: "Full mock test", detail: "One essay, test rules, just like test day.", minutes: m("mock"), route: "mock", routes: ["mock"] },
-        { id: "review", icon: "🔍", title: "Score review and fix-up", detail: `Read your score, do the fix-it lesson, then rewrite one paragraph. ${lesson.why}`, minutes: m("review"), route: "lessons", arg: lesson.id, routes: WRITING_ROUTES },
+        { id: "review", icon: "🔍", title: "Fix-it lesson", detail: `Do the fix-it lesson for your test essay. ${lesson.why}`, minutes: m("review"), route: "lessons", arg: lesson.id, routes: ["lessons"] },
         { id: "explore", icon: "🎮", title: "Free explore + weekend chest", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ]
     : [
@@ -77,9 +98,7 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
         { id: "typing", icon: "⌨️", title: "Typing", detail: "Sentence Sprints with your weak letters, plus capitals.", minutes: m("typing"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         { id: "lesson", icon: "🎓", title: `Lesson: ${LESSONS.find((l) => l.id === lesson.id)?.title ?? "Writing School"}`, detail: `${lesson.why} Finish the lesson to move on.`, minutes: m("lesson"), route: "lessons", arg: lesson.id, routes: ["lessons"] },
-        timedDay
-          ? { id: "writing", icon: "✍️", title: "Writing: full essay", detail: "Plan and write a whole essay. Try to beat each step's test-day time.", minutes: m("writing"), route: "write", routes: WRITING_ROUTES }
-          : { id: "writing", icon: "✍️", title: "Writing: plan + paragraphs", detail: "Plan an essay, then write it paragraph by paragraph. Use today's lesson!", minutes: m("writing"), route: "write", routes: WRITING_ROUTES },
+        { id: "writing", icon: "✍️", title: "Write your essay", detail: `Brainstorm, outline, then WRITE. Type at least ${WORDS_PER_DAY} new words of your essay today.`, minutes: m("writing"), route: "write", arg: todaysPrompt(s), routes: ["write"] },
         { id: "explore", icon: "🎮", title: "Free explore", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ];
   return list.filter((b) => b.minutes > 0);
@@ -126,6 +145,7 @@ function finish(id: BlockId) {
   const s = getState();
   const list = blocksFor(s);
   const block = list.find((b) => b.id === id)!;
+  logEvent("done", block.title);
   const next = currentBlock(s);
   if (id !== "break") addXp(10, 10);
   if (!next) {
@@ -151,7 +171,10 @@ export function addPlanSeconds(route: string, secs: number) {
   });
   // The mock test ends when the essay is turned in and the lesson when it's
   // finished, not on a timer.
-  if (b.id !== "mock" && b.id !== "lesson" && have >= b.minutes * 60) finish(b.id);
+  if (b.id === "mock" || b.id === "lesson" || b.id === "review") return;
+  // Writing ends on time only once he has typed today's new words.
+  if (b.id === "writing" && wordsToday(getState()) < WORDS_PER_DAY) return;
+  if (have >= b.minutes * 60) finish(b.id);
 }
 
 /** The break runs on the wall clock, whatever screen he's on. */
@@ -172,10 +195,33 @@ export function mockTurnedIn() {
   if (b?.id === "mock") finish("mock");
 }
 
+/** A practice essay was turned in: that always ends the writing block. */
+export function essayTurnedIn() {
+  const b = currentBlock(getState());
+  if (b?.id === "writing") finish("writing");
+}
+
+/** Call when the essay screen opens: remembers the day's starting word count and prompt. */
+export function noteDraft() {
+  const s = getState();
+  if (dayState(s).words0 !== undefined) return;
+  update((st) => void (st.planDay = { ...dayState(st), words0: draftWords(st), promptId: todaysPrompt(st) }));
+}
+
+/** Seconds of work left before free play (estimates for lesson and mock). */
+export function secsToFreePlay(s: State, pending = 0): number {
+  if (!currentBlock(s)) return 0;
+  const d = dayState(s);
+  const cur = currentBlock(s);
+  return blocksFor(s)
+    .filter((b) => b.id !== "explore" && !d.done.includes(b.id))
+    .reduce((a, b) => a + (b.id === "break" ? (d.breakEnd ? breakLeft(s) / 1000 : b.minutes * 60) : Math.max(0, b.minutes * 60 - blockSecs(s, b.id) - (b.id === cur?.id ? pending : 0))), 0);
+}
+
 /** A Writing School lesson was finished. */
 export function lessonFinished() {
   const b = currentBlock(getState());
-  if (b?.id === "lesson") finish("lesson");
+  if (b?.id === "lesson" || b?.id === "review") finish(b.id);
 }
 
 /** Parent controls. */
@@ -186,6 +232,6 @@ export function setPlan(fn: (p: PlanSettings) => void) {
   update((s) => {
     const p = settings(s);
     fn(p);
-    s.plan = p;
+    s.plan = { ...p, v: 2 };
   });
 }

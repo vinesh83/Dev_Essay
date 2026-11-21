@@ -9,10 +9,10 @@ import { PROMPTS, promptById, type Prompt } from "../data/prompts";
 import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } from "../data/process";
 import { analyze } from "../lib/analyze";
 import { nextPrompt } from "../lib/coach";
-import { mockTurnedIn } from "../lib/schedule";
+import { essayTurnedIn, mockTurnedIn, noteDraft } from "../lib/schedule";
 import { gradeEssay } from "../lib/grade";
 import { HELP_INFO, helpLevel, planComplete, toNextLevel } from "../lib/scaffold";
-import { addXp, checkBadges, getState, giveChest, markMission, uid, update, type Plan, type RubricScore } from "../lib/store";
+import { addXp, checkBadges, getState, giveChest, logEvent, markMission, uid, update, type Draft, type Plan, type RubricScore } from "../lib/store";
 
 export type WriteMode = "practice" | "plan" | "mock" | "diagnostic";
 
@@ -109,17 +109,23 @@ function PassageView({ p }: { p: Prompt }) {
 
 function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practice" | "plan"; onAgain: () => void }) {
   const steps = mode === "plan" ? STEPS.slice(0, 4) : STEPS;
-  const [stepIdx, setStepIdx] = useState(0);
-  const [done, setDone] = useState<StepId[]>([]);
+  // A practice essay is saved as a draft on every change, so he picks up
+  // exactly where he stopped, even on another day.
+  const [saved] = useState<Draft | undefined>(() => {
+    const d = getState().draft;
+    return mode === "practice" && d?.promptId === prompt.id ? d : undefined;
+  });
+  const [stepIdx, setStepIdx] = useState(saved?.stepIdx ?? 0);
+  const [done, setDone] = useState<StepId[]>(saved?.done ?? []);
   const [start] = useState(Date.now());
-  const elapsed = useClock(start);
-  const [highlights, setHighlights] = useState<number[]>([]);
-  const [answers, setAnswers] = useState<(number | null)[]>(UNPACK_QUESTIONS.map(() => null));
+  const elapsed = useClock(start) + (saved?.seconds ?? 0);
+  const [highlights, setHighlights] = useState<number[]>(saved?.highlights ?? []);
+  const [answers, setAnswers] = useState<(number | null)[]>(saved?.answers ?? UNPACK_QUESTIONS.map(() => null));
   const [help] = useState(() => helpLevel(getState()));
   const [toNext] = useState(() => toNextLevel(getState()));
-  const [plan, setPlan] = useState<Plan>(emptyPlan);
-  const [paras, setParas] = useState<string[]>([]);
-  const [text, setText] = useState("");
+  const [plan, setPlan] = useState<Plan>(saved?.plan ?? emptyPlan);
+  const [paras, setParas] = useState<string[]>(saved?.paras ?? []);
+  const [text, setText] = useState(saved?.text ?? "");
   const box = useRef<HTMLTextAreaElement>(null);
   const insertWord = (w: string) => {
     const el = box.current;
@@ -135,7 +141,21 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
       el.setSelectionRange(pos, pos);
     });
   };
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [checks, setChecks] = useState<Record<string, boolean>>(saved?.checks ?? {});
+  const finished = useRef(false);
+  useEffect(() => {
+    if (mode !== "practice") return;
+    noteDraft();
+    logEvent(saved ? "resume essay" : "start essay", prompt.title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (mode !== "practice" || finished.current) return;
+    const secs = Math.round(elapsed);
+    update((s) => void (s.draft = { promptId: prompt.id, stepIdx, done, highlights, answers, plan, paras, text, checks, seconds: secs, started: saved?.started ?? new Date().toISOString() }));
+    // elapsed is left out on purpose: saving on the clock would write every second.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, prompt.id, stepIdx, done, highlights, answers, plan, paras, text, checks]);
   const [hints, setHints] = useState(true);
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState<{ score: RubricScore; coins: number } | null>(null);
@@ -165,9 +185,13 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
     const allDone = [...new Set([...done, "proofread" as StepId])];
     const score = await gradeEssay(text, prompt);
     const coins = Math.round(score.total / 4) + (allDone.length === STEPS.length ? 15 : 0);
-    update((s) =>
-      void s.essays.push({ id: uid(), date: new Date().toISOString(), promptId: prompt.id, mode: "practice", text, plan, seconds: elapsed, words: words(text), score, steps: allDone }),
-    );
+    finished.current = true;
+    update((s) => {
+      s.essays.push({ id: uid(), date: new Date().toISOString(), promptId: prompt.id, mode: "practice", text, plan, seconds: Math.round(elapsed), words: words(text), score, steps: allDone });
+      if (s.draft?.promptId === prompt.id) delete s.draft;
+    });
+    logEvent("essay turned in", `${prompt.title}: ${score.total}/100, ${words(text)} words`);
+    essayTurnedIn();
     addXp(coins + STEP_COINS);
     // A full essay includes planning, so it also counts for a Brainstorm Sprint task.
     const bonus = [markMission("plan"), markMission("write")].some(Boolean);

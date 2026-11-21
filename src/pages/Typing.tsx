@@ -5,6 +5,7 @@ import { toast, toastBadges } from "../components/Toast";
 import { TYPING_LEVELS, TYPING_TARGET_ACCURACY, TYPING_TARGET_WPM, TYPING_TEST_TEXT } from "../data/typing";
 import { FUN_SENTENCES, pickSentences, sentencesWith, wordsWith } from "../data/sentences";
 import { currentTypingLevel, levelPassed } from "../lib/coach";
+import { currentBlock } from "../lib/schedule";
 import { addXp, checkBadges, getState, giveChest, markMission, update, useStore, type State } from "../lib/store";
 
 const WORDS =
@@ -97,6 +98,11 @@ export default function Typing() {
   const lines = useMemo(() => (mode ? linesFor(mode) : []), [run, mode]);
   const cur = currentTypingLevel(s);
   const weak = weakKeys(s);
+  // During the plan's typing block there are no menus: rounds alternate
+  // between a Sentence Sprint and his current level, one after another.
+  const block = currentBlock(s);
+  const forced = block?.id === "typing" || block?.id === "warmup";
+  const nextForced = (): Mode => (run % 2 === 0 ? { kind: "sprint", keys: weak } : { kind: "level", id: cur.id });
 
   const saveKeys = (r: TypingResult) =>
     update((st) => {
@@ -202,12 +208,42 @@ export default function Typing() {
         <div className="row">
           <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : mode.kind === "caps" ? "Capital Letters" : mode.kind === "sprint" ? "🏁 Sentence Sprint" : "Weak-Key Training"}</h2>
           <span className="spacer" />
-          <button className="btn ghost" onClick={() => setMode(null)}>
-            Back
-          </button>
+          {!forced && (
+            <button className="btn ghost" onClick={() => setMode(null)}>
+              Back
+            </button>
+          )}
         </div>
         <p className="muted">{tip}</p>
         <TypingDrill key={run} lines={lines} onDone={done} timeLimit={mode.kind === "test" ? 60 : undefined} />
+      </div>
+    );
+  }
+
+  if (forced) {
+    return (
+      <div className="card center forced-card">
+        {result ? (
+          <>
+            <div style={{ fontSize: 48 }}>{result.passed === false ? "💪" : "⭐"}</div>
+            <h2>{result.label}</h2>
+            <div className="row" style={{ justifyContent: "center", gap: 24, fontSize: "1.3rem" }}>
+              <div><b>{result.wpm}</b> <span className="muted small">WPM</span></div>
+              <div><b>{result.acc}%</b> <span className="muted small">accuracy</span></div>
+            </div>
+            {result.passed === false && <p className="muted">Slow down and use the right fingers. 90% accuracy passes.</p>}
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 56 }}>⌨️</div>
+            <h1>Typing time</h1>
+            <p className="big-guide">Fingers on home row: <b>A S D F</b> and <b>J K L ;</b>. Watch the finger colors. Smooth beats fast.</p>
+          </>
+        )}
+        <button className="btn big go-pulse" onClick={() => start(nextForced())}>
+          {result ? "Next round ▶" : "Start typing ▶"}
+        </button>
+        <p className="small muted">Keep typing until the timer at the top says typing is done.</p>
       </div>
     );
   }

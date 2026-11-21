@@ -54,6 +54,32 @@ export default function Home() {
     );
   }
 
+  // While today's path is unfinished, Home is just the path and one button.
+  if (block) {
+    return (
+      <>
+        <Scene s={s} height={300} three>
+          <Hero s={s} size={170} />
+          <div className="scene-panel">
+            <h1 style={{ marginBottom: 4 }}>Hi {s.name}!</h1>
+            <p style={{ margin: 0 }}>{days > 0 ? `${days} days until test day.` : "Test day is here. You've got this!"}</p>
+            <p className="big-guide" style={{ marginTop: 10 }}>
+              <b>Now: {block.icon} {block.title}</b>
+              <br />
+              {block.detail}
+            </p>
+            {block.id !== "break" && (
+              <button className="btn big go-pulse" style={{ marginTop: 10 }} onClick={() => go(block.route as Route, block.arg)}>
+                GO ▶
+              </button>
+            )}
+          </div>
+        </Scene>
+        <PlanTrack />
+      </>
+    );
+  }
+
   return (
     <>
       <Scene s={s} height={340} three>
@@ -69,7 +95,7 @@ export default function Home() {
             </div>
           </div>
           {secs < goal && (
-            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((block?.id === "break" ? "home" : block?.route ?? nextTask?.route ?? "typing") as Route, block?.id === "break" ? undefined : block?.arg)}>
+            <button className="btn big" style={{ marginTop: 14 }} onClick={() => go((nextTask?.route ?? "typing") as Route)}>
               {secs > 0 ? "Keep training ▶" : "Start today's training ▶"}
             </button>
           )}
