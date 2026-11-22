@@ -94,6 +94,9 @@ export type State = {
   frozenDays?: number[]; // recent days a freeze covered
   milestones?: number[]; // streak milestones already paid
   lostStreak?: { count: number; day: number }; // last broken streak, for a parent restore
+  typingBest?: Record<string, number>; // day number -> best WPM in the plan's typing rounds
+  curriculumDay?: number; // next Quest Curriculum day to play (1-based)
+  curriculumOn?: number; // calendar day the curriculum last advanced
   draft?: Draft; // the practice essay in progress, kept across days
   log?: LogEntry[]; // activity log for the Parents page (screens visited, blocks done)
 };

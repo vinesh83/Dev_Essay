@@ -5,7 +5,7 @@ import { Coach } from "../components/Thinking";
 import { toast, toastBadges } from "../components/Toast";
 import { LESSONS, lessonById, type Exercise, type Lesson } from "../data/lessons";
 import { sfx } from "../lib/sfx";
-import { lessonFinished } from "../lib/schedule";
+import { currentBlock, lessonFinished, todaysSession } from "../lib/schedule";
 import { addXp, checkBadges, finishLesson, markMission, useStore, type State } from "../lib/store";
 import { splitTransitions } from "../lib/structure";
 
@@ -19,7 +19,8 @@ export default function Lessons({ id }: { id?: string }) {
   const s = useStore();
   const lesson = lessonById(id);
   const idx = lesson ? LESSONS.indexOf(lesson) : -1;
-  if (lesson && lessonUnlocked(s, idx)) return <LessonPlayer key={lesson.id} lesson={lesson} />;
+  // The daily path may assign any lesson; outside the path they unlock in order.
+  if (lesson && (lessonUnlocked(s, idx) || currentBlock(s)?.arg === lesson.id)) return <LessonPlayer key={lesson.id} lesson={lesson} />;
 
   const done = LESSONS.filter((l) => s.lessons?.[l.id]).length;
   return (
@@ -61,7 +62,11 @@ type Phase = "learn" | "model" | "practice" | "done";
 
 function LessonPlayer({ lesson }: { lesson: Lesson }) {
   const s = useStore();
-  const [phase, setPhase] = useState<Phase>("learn");
+  // On the daily path there is no lesson menu. Days 2 and 3 of a unit are a
+  // quick review: the labeled example, then the practice.
+  const [onPath] = useState(() => !!currentBlock(s));
+  const [review] = useState(() => onPath && todaysSession(s).part > 1 && !!s.lessons?.[lesson.id]);
+  const [phase, setPhase] = useState<Phase>(review ? "model" : "learn");
   const [card, setCard] = useState(0);
   const [ex, setEx] = useState(0);
   const [misses, setMisses] = useState(0);
@@ -84,7 +89,7 @@ function LessonPlayer({ lesson }: { lesson: Lesson }) {
   return (
     <>
       <div className="row" style={{ marginBottom: 10 }}>
-        <button className="btn ghost small-btn" onClick={() => go("lessons")}>← Writing School</button>
+        {onPath ? <b>{review ? "🔁 Quick review" : "🆕 New lesson"}</b> : <button className="btn ghost small-btn" onClick={() => go("lessons")}>← Writing School</button>}
         <span className="spacer" />
         <div className="lesson-phases">
           {(["learn", "model", "practice"] as Phase[]).map((p, i) => (
@@ -153,6 +158,9 @@ function LessonPlayer({ lesson }: { lesson: Lesson }) {
               <h2>Lesson complete!</h2>
               <p>{result.first ? "+40 XP and +30 coins!" : "+10 XP and +5 coins for practicing again."} {result.stars < 3 && "Replay it any time to earn 3 stars."}</p>
               <p className="muted">🐾 Ellie is doing a happy spin for you!</p>
+              {onPath ? (
+                <p className="big-guide"><b>Next step is starting…</b></p>
+              ) : (
               <div className="row" style={{ justifyContent: "center" }}>
                 <button className="btn ghost" onClick={() => go("lessons")}>All lessons</button>
                 {LESSONS[LESSONS.indexOf(lesson) + 1] ? (
@@ -161,6 +169,7 @@ function LessonPlayer({ lesson }: { lesson: Lesson }) {
                   <button className="btn" onClick={() => go("write")}>Use it in an essay ✍️</button>
                 )}
               </div>
+              )}
             </div>
           )}
         </div>

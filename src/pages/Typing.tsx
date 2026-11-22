@@ -5,7 +5,9 @@ import { toast, toastBadges } from "../components/Toast";
 import { TYPING_LEVELS, TYPING_TARGET_ACCURACY, TYPING_TARGET_WPM, TYPING_TEST_TEXT } from "../data/typing";
 import { FUN_SENTENCES, pickSentences, sentencesWith, wordsWith } from "../data/sentences";
 import { currentTypingLevel, levelPassed } from "../lib/coach";
-import { currentBlock } from "../lib/schedule";
+import { currentBlock, todaysSession } from "../lib/schedule";
+import { UNITS } from "../data/curriculum";
+import { today } from "../lib/store";
 import { addXp, checkBadges, getState, giveChest, markMission, update, useStore, type State } from "../lib/store";
 
 const WORDS =
@@ -80,11 +82,15 @@ function linesFor(mode: Mode): string[] {
               ? [...CAPS_LINES].sort(() => Math.random() - 0.5).slice(0, 5)
               : mode.kind === "sprint"
                 ? pickSentences(6, mode.keys)
+                : mode.kind === "essay"
+                  ? [...UNITS[mode.unit].sentences].sort(() => Math.random() - 0.5).slice(0, 5)
                 : [TYPING_TEST_TEXT, TYPING_TEST_TEXT]
   );
 }
 
-type Mode = { kind: "sprint"; keys: string[] } | { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean } | { kind: "caps"; watching: boolean };
+type Mode = { kind: "essay"; unit: number } | { kind: "sprint"; keys: string[] } | { kind: "level"; id: number } | { kind: "weak"; keys: string[] } | { kind: "test" } | { kind: "letter"; ch: string; watching: boolean } | { kind: "caps"; watching: boolean };
+
+const r85 = (acc: number) => (acc < 85 ? <p className="muted">Accuracy {acc}%. Slow down and use the right fingers. 85% counts toward your record.</p> : null);
 
 export default function Typing() {
   const s = useStore();
@@ -102,7 +108,10 @@ export default function Typing() {
   // between a Sentence Sprint and his current level, one after another.
   const block = currentBlock(s);
   const forced = block?.id === "typing" || block?.id === "warmup";
-  const nextForced = (): Mode => (run % 2 === 0 ? { kind: "sprint", keys: weak } : { kind: "level", id: cur.id });
+  const unit = UNITS[todaysSession(s).unit];
+  const nextForced = (): Mode => (run % 2 === 0 ? { kind: "sprint", keys: weak } : { kind: "essay", unit: todaysSession(s).unit });
+  const bestToday = s.typingBest?.[String(today())] ?? 0;
+  const lastBest = Object.entries(s.typingBest ?? {}).filter(([d]) => Number(d) < today()).sort((a, b) => Number(b[0]) - Number(a[0]))[0]?.[1] ?? 0;
 
   const saveKeys = (r: TypingResult) =>
     update((st) => {
@@ -138,6 +147,9 @@ export default function Typing() {
     } else if (mode.kind === "letter") {
       addXp(10);
       setResult({ ...r, label: `Letter Lab: ${mode.ch === mode.ch.toUpperCase() ? "Capital " : ""}${mode.ch.toUpperCase()}` });
+    } else if (mode.kind === "essay") {
+      addXp(15);
+      setResult({ ...r, label: `${UNITS[mode.unit].icon} Essay sentences: ${UNITS[mode.unit].name}` });
     } else if (mode.kind === "sprint") {
       addXp(15);
       setResult({ ...r, label: "🏁 Sentence Sprint" });
@@ -147,6 +159,14 @@ export default function Typing() {
     } else {
       addXp(12);
       setResult({ ...r, label: `Weak keys: ${mode.keys.join(" ").toUpperCase()}` });
+    }
+    if (forced) {
+      const k = String(today());
+      const prev = getState().typingBest?.[k] ?? 0;
+      if (r.acc >= 85 && r.wpm > prev) {
+        update((st) => void (st.typingBest = { ...(st.typingBest ?? {}), [k]: r.wpm }));
+        if (prev > 0) toast(`🚀 New best today: ${r.wpm} WPM!`);
+      }
     }
     if (markMission("typing")) toast("🎉 Daily quest complete! +25 bonus coins");
     toastBadges(checkBadges());
@@ -202,11 +222,11 @@ export default function Typing() {
 
   if (mode && !result) {
 
-    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : mode.kind === "caps" ? "Every capital: hold Shift on the other side, press the letter, let go of both." : mode.kind === "sprint" ? "Real sentences! Keep your fingers on home row and watch the finger colors. Smooth beats fast." : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
+    const tip = mode.kind === "level" ? TYPING_LEVELS.find((l) => l.id === mode.id)!.tip : mode.kind === "test" ? "Type as far as you can in one minute. Accuracy counts!" : mode.kind === "letter" ? describeReach(mode.ch) : mode.kind === "caps" ? "Every capital: hold Shift on the other side, press the letter, let go of both." : mode.kind === "sprint" ? "Real sentences! Keep your fingers on home row and watch the finger colors. Smooth beats fast." : mode.kind === "essay" ? "Essay sentences! These are the moves from today's unit. Type them, then use them in your essay." : "These words use the keys you miss most. Slow and correct beats fast and wrong.";
     return (
       <div className="card">
         <div className="row">
-          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : mode.kind === "caps" ? "Capital Letters" : mode.kind === "sprint" ? "🏁 Sentence Sprint" : "Weak-Key Training"}</h2>
+          <h2 style={{ margin: 0 }}>{mode.kind === "level" ? `Level ${mode.id}` : mode.kind === "test" ? "Speed Test" : mode.kind === "letter" ? `Letter Lab: ${mode.ch.toUpperCase()}` : mode.kind === "caps" ? "Capital Letters" : mode.kind === "sprint" ? "🏁 Sentence Sprint" : mode.kind === "essay" ? `${UNITS[mode.unit].icon} Essay Sentences` : "Weak-Key Training"}</h2>
           <span className="spacer" />
           {!forced && (
             <button className="btn ghost" onClick={() => setMode(null)}>
@@ -231,19 +251,22 @@ export default function Typing() {
               <div><b>{result.wpm}</b> <span className="muted small">WPM</span></div>
               <div><b>{result.acc}%</b> <span className="muted small">accuracy</span></div>
             </div>
-            {result.passed === false && <p className="muted">Slow down and use the right fingers. 90% accuracy passes.</p>}
+            {r85(result.acc)}
           </>
         ) : (
           <>
             <div style={{ fontSize: 56 }}>⌨️</div>
             <h1>Typing time</h1>
-            <p className="big-guide">Fingers on home row: <b>A S D F</b> and <b>J K L ;</b>. Watch the finger colors. Smooth beats fast.</p>
+            <p className="big-guide">Real sentences today: fun ones, then {unit.icon} <b>{unit.name}</b> sentences you can use in your essay. Fingers on home row. Watch the finger colors.</p>
           </>
         )}
         <button className="btn big go-pulse" onClick={() => start(nextForced())}>
           {result ? "Next round ▶" : "Start typing ▶"}
         </button>
-        <p className="small muted">Keep typing until the timer at the top says typing is done.</p>
+        <p className="big-guide" style={{ margin: "8px 0 0" }}>
+          🎯 {lastBest ? <>Beat your last best: <b>{lastBest} WPM</b></> : <>Set your first speed record</>} · Today's best: <b>{bestToday || "—"}</b> <span className="small muted">(needs 85% accuracy)</span>
+        </p>
+        <p className="small muted">Keep typing rounds until the timer at the top says typing is done.</p>
       </div>
     );
   }

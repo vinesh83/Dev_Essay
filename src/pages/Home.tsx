@@ -6,6 +6,7 @@ import JourneyMap from "../components/JourneyMap";
 import PracticeRing from "../components/PracticeRing";
 import QuestCalendar from "../components/QuestCalendar";
 import { PlanTrack } from "../components/DailyPlan";
+import CurriculumMap from "../components/CurriculumMap";
 import { StreakCard } from "../components/Streak";
 import { currentBlock } from "../lib/schedule";
 import Scene from "../components/Scene";
@@ -75,7 +76,8 @@ export default function Home() {
             )}
           </div>
         </Scene>
-        <PlanTrack />
+        <StreakCard />
+        <CurriculumMap />
       </>
     );
   }
@@ -104,6 +106,7 @@ export default function Home() {
 
       <PlanTrack />
       <StreakCard />
+      <CurriculumMap />
 
       <h2 className="section-title">Today's Quests <span className="muted small">({doneCount}/{tasks.length} done · finish all for +25 coins)</span></h2>
       <div className="grid three">

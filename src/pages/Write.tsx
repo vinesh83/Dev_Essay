@@ -9,7 +9,8 @@ import { PROMPTS, promptById, type Prompt } from "../data/prompts";
 import { PROOF_CHECKS, REVISE_CHECKS, STEPS, UNPACK_QUESTIONS, type StepId } from "../data/process";
 import { analyze } from "../lib/analyze";
 import { nextPrompt } from "../lib/coach";
-import { essayTurnedIn, mockTurnedIn, noteDraft } from "../lib/schedule";
+import { currentBlock, essayTurnedIn, mockTurnedIn, noteDraft, todaysSession } from "../lib/schedule";
+import { UNITS } from "../data/curriculum";
 import { gradeEssay } from "../lib/grade";
 import { HELP_INFO, helpLevel, planComplete, toNextLevel } from "../lib/scaffold";
 import { addXp, checkBadges, getState, giveChest, logEvent, markMission, uid, update, type Draft, type Plan, type RubricScore } from "../lib/store";
@@ -208,9 +209,19 @@ function GuidedEssay({ prompt, mode, onAgain }: { prompt: Prompt; mode: "practic
   const qWords = prompt.question.split(" ");
   const hi = HELP_INFO[help];
   const a = analyze(text);
+  const ses = mode === "practice" && currentBlock(getState())?.id === "writing" ? todaysSession(getState()) : null;
 
   return (
     <>
+      {ses && (
+        <div className="focus-banner">
+          <span className="focus-icon">{UNITS[ses.unit].icon}</span>
+          <div>
+            <div className="focus-label">TODAY'S FOCUS · Day {ses.day} · {UNITS[ses.unit].name} {ses.part}/3</div>
+            <div className="focus-text">{ses.focus}</div>
+          </div>
+        </div>
+      )}
       <div className="card" style={{ padding: 14 }}>
         <div className="row">
           {steps.map((st, i) => (

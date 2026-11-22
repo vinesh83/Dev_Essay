@@ -1,5 +1,6 @@
 import { LESSONS } from "../data/lessons";
 import { PROMPTS } from "../data/prompts";
+import { UNITS, sessionFor, type Session } from "../data/curriculum";
 import { addXp, getState, giveChest, logEvent, today, update, type State } from "./store";
 import { lightStreak } from "./streak";
 
@@ -54,6 +55,25 @@ export function fixLesson(score: Scores, rank = 0): { id: string; why: string } 
   const pick = parts[Math.min(rank, parts.length - 1)];
   return { id: FIX[pick], why: `Your last essay needs work on ${NAMES[pick]}.` };
 }
+/** Today's Quest Curriculum session. Stays the same all day, even after it is finished. */
+export function todaysSession(s: State): Session {
+  const day = s.curriculumDay ?? 1;
+  return sessionFor(s.curriculumOn === today() ? day - 1 : day);
+}
+
+/** The weekday path is done: move the curriculum to the next day (once a day). */
+function advanceCurriculum() {
+  const s = getState();
+  if (s.curriculumOn === today()) return;
+  const done = todaysSession(s);
+  update((st) => {
+    st.curriculumDay = (st.curriculumDay ?? 1) + 1;
+    st.curriculumOn = today();
+  });
+  logEvent("curriculum", `Day ${done.day} done (${UNITS[done.unit].name} ${done.part}/3)`);
+  if (done.part === 3) giveChest("gold", `finishing the ${UNITS[done.unit].name} unit`);
+}
+
 export function todaysLesson(s: State): { id: string; why: string } {
   const last = [...s.essays].reverse().find((e) => e.score);
   if (last?.score) return fixLesson(last.score);
@@ -81,25 +101,35 @@ export function todaysPrompt(s: State): string {
   return list[today() % list.length].id;
 }
 
+/** The weekend mock test prompt: a fresh one, never the practice draft's. */
+export function mockPrompt(s: State): string {
+  const used = new Set([...s.essays.map((e) => e.promptId), s.draft?.promptId]);
+  const fresh = PROMPTS.filter((p) => !used.has(p.id));
+  const list = fresh.length ? fresh : PROMPTS.filter((p) => p.id !== s.draft?.promptId);
+  return list[(today() * 7) % list.length].id;
+}
+
 export function blocksFor(s: State, weekend = isWeekend()): Block[] {
   const len = weekend ? settings(s).weekend : settings(s).weekday;
   const m = (id: BlockId) => len[id] ?? 0;
   const lesson = todaysLesson(s);
+  const ses = todaysSession(s);
+  const unit = UNITS[ses.unit];
   const list: Block[] = weekend
     ? [
         { id: "warmup", icon: "🔥", title: "Typing warm-up", detail: "Home-row check, then Sentence Sprints.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
-        { id: "mock", icon: "🎯", title: "Full mock test", detail: "One essay, test rules, just like test day.", minutes: m("mock"), route: "mock", routes: ["mock"] },
+        { id: "mock", icon: "🎯", title: "Full mock test", detail: "One essay, test rules, just like test day.", minutes: m("mock"), route: "mock", arg: mockPrompt(s), routes: ["mock"] },
         { id: "review", icon: "🔍", title: "Fix-it lesson", detail: `Do the fix-it lesson for your test essay. ${lesson.why}`, minutes: m("review"), route: "lessons", arg: lesson.id, routes: ["lessons"] },
         { id: "explore", icon: "🎮", title: "Free explore + weekend chest", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ]
     : [
         { id: "warmup", icon: "🔥", title: "Warm-up", detail: "Home-row check, then your next typing level.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
-        { id: "typing", icon: "⌨️", title: "Typing", detail: "Sentence Sprints with your weak letters, plus capitals.", minutes: m("typing"), route: "typing", routes: ["typing"] },
+        { id: "typing", icon: "⌨️", title: "Typing", detail: `Real sentences: fun ones, then ${unit.name} sentences for your essay.`, minutes: m("typing"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
         { id: "recess", icon: "🎮", title: "Free play break", detail: "Road Trip, garage, shop, cards, or crafting. When the clock runs out, you go back to work.", minutes: m("recess"), route: "garage", routes: [] },
-        { id: "lesson", icon: "🎓", title: `Lesson: ${LESSONS.find((l) => l.id === lesson.id)?.title ?? "Writing School"}`, detail: `${lesson.why} Finish the lesson to move on.`, minutes: m("lesson"), route: "lessons", arg: lesson.id, routes: ["lessons"] },
-        { id: "writing", icon: "✍️", title: "Write your essay", detail: `Brainstorm, outline, then WRITE. Type at least ${WORDS_PER_DAY} new words of your essay today.`, minutes: m("writing"), route: "write", arg: todaysPrompt(s), routes: ["write"] },
+        { id: "lesson", icon: unit.icon, title: `${ses.part === 1 ? "Lesson" : "Review"}: ${LESSONS.find((l) => l.id === ses.lessonId)?.title ?? unit.name}`, detail: ses.part === 1 ? "A new move for your essay. Finish the lesson to move on." : "Practice this move again until it's automatic.", minutes: m("lesson"), route: "lessons", arg: ses.lessonId, routes: ["lessons"] },
+        { id: "writing", icon: "✍️", title: "Write your essay", detail: `Brainstorm, outline, then WRITE. Today's focus: ${ses.focus}`, minutes: m("writing"), route: "write", arg: todaysPrompt(s), routes: ["write"] },
         { id: "explore", icon: "🎮", title: "Free explore", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
       ];
   return list.filter((b) => b.minutes > 0);
@@ -158,6 +188,7 @@ function finish(id: BlockId) {
       update((st) => void (st.planDay = { ...dayState(st), bonus: true }));
       giveChest(weekend ? "gold" : "silver", weekend ? "finishing weekend training" : "finishing today's plan");
     }
+    if (!weekend) advanceCurriculum();
     lightStreak();
   }
   onDone(block, next ?? list.find((b) => b.id === "explore") ?? null);

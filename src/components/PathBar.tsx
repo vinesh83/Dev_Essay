@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { go, type Route } from "../App";
-import { blockSecs, blocksFor, breakLeft, currentBlock, dayState, secsToFreePlay, WORDS_PER_DAY, wordsToday } from "../lib/schedule";
+import { UNITS } from "../data/curriculum";
+import { litToday, streakAlive } from "../lib/streak";
+import { isWeekend, todaysSession, blockSecs, blocksFor, breakLeft, currentBlock, dayState, secsToFreePlay, WORDS_PER_DAY, wordsToday } from "../lib/schedule";
 import { isCounting, pendingSecs } from "../lib/session";
 import { useStore } from "../lib/store";
 
@@ -51,6 +53,10 @@ export default function PathBar({ route }: { route: string }) {
         <span className="pathbar-time">{clock(recess ? breakLeft(s) / 1000 : left)}</span>
       </div>
       <div className="pathbar-mid">
+        <div className="pathbar-top">
+          <span className="pathbar-day">{isWeekend() ? "🏆 Weekend Training" : `📅 Day ${todaysSession(s).day} · ${UNITS[todaysSession(s).unit].icon} ${UNITS[todaysSession(s).unit].name} ${todaysSession(s).part}/3`}</span>
+          <span className="pathbar-streak">🔥 {streakAlive(s)} {litToday(s) ? "· lit today!" : `· finish the path to make it ${streakAlive(s) + 1}!`}</span>
+        </div>
         <div className="pathbar-steps">
           {blocks.map((b, i) => {
             const st = d.done.includes(b.id) ? "done" : b.id === cur.id ? "now" : "later";
