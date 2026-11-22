@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { go, type Route } from "../App";
-import { blockSecs, blocksFor, currentBlock, dayState, secsToFreePlay, WORDS_PER_DAY, wordsToday } from "../lib/schedule";
+import { blockSecs, blocksFor, breakLeft, currentBlock, dayState, secsToFreePlay, WORDS_PER_DAY, wordsToday } from "../lib/schedule";
 import { isCounting, pendingSecs } from "../lib/session";
 import { useStore } from "../lib/store";
 
@@ -27,13 +27,15 @@ export default function PathBar({ route }: { route: string }) {
   const total = work.reduce((a, b) => a + b.minutes * 60, 0);
   const left = secsToFreePlay(s, pendingSecs());
   const pct = total ? Math.min(100, ((total - left) / total) * 100) : 0;
-  const running = cur.id === "break" || (isCounting(route) && cur.routes.includes(route));
+  const recess = cur.id === "recess";
+  const running = cur.id === "break" || recess || (isCounting(route) && cur.routes.includes(route));
   const curLeft = Math.max(0, cur.minutes * 60 - blockSecs(s, cur.id) - pendingSecs());
   const needWords = cur.id === "writing" ? Math.max(0, WORDS_PER_DAY - wordsToday(s)) : 0;
-  const onIt = route === cur.route;
+  const onIt = recess ? route !== "home" : route === cur.route;
 
   let status: string;
   if (cur.id === "break") status = "🌿 Break: the clock runs by itself.";
+  else if (recess) status = `🎮 Free play break! ${clock(breakLeft(s) / 1000)} left, then back to work.`;
   else if (!onIt) status = `👉 Press GO to start ${cur.title.toLowerCase()}.`;
   else if (!running) status = "⏸️ Clock paused. Keep typing to make it move!";
   else if (cur.id === "lesson" || cur.id === "review") status = "🎓 Finish the lesson to move on.";
@@ -45,8 +47,8 @@ export default function PathBar({ route }: { route: string }) {
   return (
     <div className={`pathbar ${running ? "running" : "paused"}`}>
       <div className="pathbar-clock">
-        <span className="pathbar-label">🎮 Free play in</span>
-        <span className="pathbar-time">{clock(left)}</span>
+        <span className="pathbar-label">{recess ? "🎮 Back to work in" : "🎮 Free play in"}</span>
+        <span className="pathbar-time">{clock(recess ? breakLeft(s) / 1000 : left)}</span>
       </div>
       <div className="pathbar-mid">
         <div className="pathbar-steps">
@@ -54,7 +56,7 @@ export default function PathBar({ route }: { route: string }) {
             const st = d.done.includes(b.id) ? "done" : b.id === cur.id ? "now" : "later";
             return (
               <span key={b.id} className={`pathbar-step ${st}`}>
-                {st === "done" ? "✅" : b.id === "explore" ? "🎮" : b.icon} {i + 1}. {b.id === "explore" ? "Free play" : b.title.replace(/^Lesson: /, "Lesson: ")}
+                {st === "done" ? "✅" : b.id === "explore" ? "🎮" : b.icon} {i + 1}. {b.id === "explore" ? "Free play" : b.id === "recess" ? `Free play ${b.minutes} min` : b.title.replace(/^Lesson: /, "Lesson: ")}
               </span>
             );
           })}

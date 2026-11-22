@@ -13,7 +13,7 @@ import { isCounting, usePracticeClock } from "./lib/session";
 import { BreakScreen } from "./components/DailyPlan";
 import PathBar from "./components/PathBar";
 import ParentGate from "./components/ParentGate";
-import { currentBlock, routeOpen, setPlanListener, settings, workMinutes } from "./lib/schedule";
+import { FUN_ROUTES, currentBlock, routeOpen, setPlanListener, settings, workMinutes } from "./lib/schedule";
 import { logEvent, update } from "./lib/store";
 import { level, practiceToday, useStore, xpForLevel } from "./lib/store";
 import Collection from "./pages/Collection";
@@ -82,6 +82,13 @@ export default function App() {
       if (!next) return;
       if (next.id === "explore") toast(`✅ ${done.title} done! 🎮 Free explore is open. Great work today!`);
       else if (next.id === "break") toast(`✅ ${done.title} done! Time for a ${next.minutes}-minute break.`);
+      else if (next.id === "recess") {
+        toast(`✅ ${done.title} done! 🎮 ${next.minutes} minutes of free play. Go have fun!`);
+        go(next.route as Route);
+      } else if (done.id === "recess") {
+        toast(`⏰ Free play break is over! Next: ${next.icon} ${next.title}`);
+        go(next.route as Route, next.arg);
+      }
       else {
         toast(`✅ ${done.title} done! Next: ${next.icon} ${next.title}`);
         // Let the lesson's star screen show for a moment before moving on.
@@ -117,7 +124,7 @@ export default function App() {
   // One path: while today's work remains, every screen except Home and
   // the Parents page sends him straight to the current step.
   const exempt = route === "home" || route === "progress" || route === "diagnostic";
-  const offPath = !!block && block.id !== "break" && !exempt && (route !== block.route || (!!block.arg && arg !== block.arg));
+  const offPath = !!block && block.id !== "break" && !exempt && (block.id === "recess" ? !FUN_ROUTES.has(route) : route !== block.route || (!!block.arg && arg !== block.arg));
   useEffect(() => {
     if (!offPath || !block) return;
     logEvent("blocked", `${route}${arg ? "/" + arg : ""} → ${block.title}`, route);
@@ -170,9 +177,9 @@ export default function App() {
             </div>
           </span>
         </div>
-        {!onPath && (
+        {(!onPath || block?.id === "recess") && (
           <nav className="nav">
-            {NAV.map(([r, icon, label]) => (
+            {NAV.filter(([r]) => !onPath || r === "home" || FUN_ROUTES.has(r)).map(([r, icon, label]) => (
               <button key={r} className={navRoute === r ? "on" : ""} onClick={() => go(r)}>
                 <span aria-hidden>{routeOpen(s, r) ? icon : "🔒"}</span> {label}
               </button>

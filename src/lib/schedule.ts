@@ -8,7 +8,7 @@ import { lightStreak } from "./streak";
 // cards, crafting) open only at Free Explore time. A parent can change
 // block lengths, turn the plan off, or unlock a day on the Parents page.
 
-export type BlockId = "warmup" | "typing" | "break" | "lesson" | "writing" | "mock" | "review" | "explore";
+export type BlockId = "warmup" | "typing" | "break" | "recess" | "lesson" | "writing" | "mock" | "review" | "explore";
 
 export type Block = {
   id: BlockId;
@@ -29,7 +29,7 @@ export const DEFAULT_PLAN: PlanSettings = {
   on: true,
   // 45 minutes in all, one straight path: 10 typing, a 5-minute lesson,
   // 25 of real essay writing, then 5 of free play.
-  weekday: { warmup: 0, typing: 10, break: 0, lesson: 5, writing: 25, explore: 5 },
+  weekday: { warmup: 0, typing: 10, break: 0, recess: 5, lesson: 5, writing: 25, explore: 5 },
   v: 2,
   weekend: { warmup: 10, break: 5, mock: 90, review: 15, explore: 10 },
 };
@@ -97,6 +97,7 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
         { id: "warmup", icon: "🔥", title: "Warm-up", detail: "Home-row check, then your next typing level.", minutes: m("warmup"), route: "typing", routes: ["typing"] },
         { id: "typing", icon: "⌨️", title: "Typing", detail: "Sentence Sprints with your weak letters, plus capitals.", minutes: m("typing"), route: "typing", routes: ["typing"] },
         { id: "break", icon: "🌿", title: "Break", detail: "Stretch, get water, rest your eyes.", minutes: m("break"), route: "home", routes: [] },
+        { id: "recess", icon: "🎮", title: "Free play break", detail: "Road Trip, garage, shop, cards, or crafting. When the clock runs out, you go back to work.", minutes: m("recess"), route: "garage", routes: [] },
         { id: "lesson", icon: "🎓", title: `Lesson: ${LESSONS.find((l) => l.id === lesson.id)?.title ?? "Writing School"}`, detail: `${lesson.why} Finish the lesson to move on.`, minutes: m("lesson"), route: "lessons", arg: lesson.id, routes: ["lessons"] },
         { id: "writing", icon: "✍️", title: "Write your essay", detail: `Brainstorm, outline, then WRITE. Type at least ${WORDS_PER_DAY} new words of your essay today.`, minutes: m("writing"), route: "write", arg: todaysPrompt(s), routes: ["write"] },
         { id: "explore", icon: "🎮", title: "Free explore", detail: "Road Trip, garage, shop, cards, crafting: your choice!", minutes: m("explore"), route: "garage", routes: [] },
@@ -104,8 +105,10 @@ export function blocksFor(s: State, weekend = isWeekend()): Block[] {
   return list.filter((b) => b.minutes > 0);
 }
 
-/** Minutes of focused work (not the break or free time). */
-export const workMinutes = (s: State, weekend = isWeekend()) => blocksFor(s, weekend).filter((b) => b.id !== "break" && b.id !== "explore").reduce((a, b) => a + b.minutes, 0);
+/** Wall-clock blocks: they run on time, whatever screen he's on. */
+export const timedBlock = (id: BlockId) => id === "break" || id === "recess";
+/** Minutes of focused work (not breaks or free time). */
+export const workMinutes = (s: State, weekend = isWeekend()) => blocksFor(s, weekend).filter((b) => !timedBlock(b.id) && b.id !== "explore").reduce((a, b) => a + b.minutes, 0);
 export const planMinutes = (s: State, weekend = isWeekend()) => blocksFor(s, weekend).filter((b) => b.id !== "break").reduce((a, b) => a + b.minutes, 0);
 
 export const dayState = (s: State): PlanDay => (s.planDay?.day === today() ? s.planDay : { day: today(), secs: {}, done: [] });
@@ -124,6 +127,7 @@ export function routeOpen(s: State, route: string): boolean {
   if (!b) return true;
   if (route === "home" || route === "progress" || route === "diagnostic") return true;
   if (b.id === "break") return false;
+  if (b.id === "recess") return FUN_ROUTES.has(route);
   return b.routes.includes(route);
 }
 
@@ -140,14 +144,14 @@ function finish(id: BlockId) {
     s.planDay = { ...d, done: [...d.done, id] };
     const list = blocksFor(s);
     const next = list.find((b) => b.id !== "explore" && !s.planDay!.done.includes(b.id));
-    if (next?.id === "break") s.planDay.breakEnd = Date.now() + next.minutes * 60_000;
+    if (next && timedBlock(next.id)) s.planDay.breakEnd = Date.now() + next.minutes * 60_000;
   });
   const s = getState();
   const list = blocksFor(s);
   const block = list.find((b) => b.id === id)!;
   logEvent("done", block.title);
   const next = currentBlock(s);
-  if (id !== "break") addXp(10, 10);
+  if (!timedBlock(id)) addXp(10, 10);
   if (!next) {
     const weekend = isWeekend();
     if (!dayState(s).bonus) {
@@ -163,7 +167,7 @@ function finish(id: BlockId) {
 export function addPlanSeconds(route: string, secs: number) {
   const s = getState();
   const b = currentBlock(s);
-  if (!b || b.id === "break" || !b.routes.includes(route)) return;
+  if (!b || timedBlock(b.id) || !b.routes.includes(route)) return;
   const have = blockSecs(s, b.id) + secs;
   update((st) => {
     const d = dayState(st);
@@ -181,10 +185,10 @@ export function addPlanSeconds(route: string, secs: number) {
 export function tickBreak() {
   const s = getState();
   const b = currentBlock(s);
-  if (b?.id !== "break") return;
+  if (!b || !timedBlock(b.id)) return;
   const d = dayState(s);
   if (!d.breakEnd) update((st) => void (st.planDay = { ...dayState(st), breakEnd: Date.now() + b.minutes * 60_000 }));
-  else if (Date.now() >= d.breakEnd) finish("break");
+  else if (Date.now() >= d.breakEnd) finish(b.id);
 }
 
 export const breakLeft = (s: State) => Math.max(0, (dayState(s).breakEnd ?? Date.now()) - Date.now());
@@ -215,7 +219,7 @@ export function secsToFreePlay(s: State, pending = 0): number {
   const cur = currentBlock(s);
   return blocksFor(s)
     .filter((b) => b.id !== "explore" && !d.done.includes(b.id))
-    .reduce((a, b) => a + (b.id === "break" ? (d.breakEnd ? breakLeft(s) / 1000 : b.minutes * 60) : Math.max(0, b.minutes * 60 - blockSecs(s, b.id) - (b.id === cur?.id ? pending : 0))), 0);
+    .reduce((a, b) => a + (timedBlock(b.id) ? (b.id === cur?.id && d.breakEnd ? breakLeft(s) / 1000 : b.minutes * 60) : Math.max(0, b.minutes * 60 - blockSecs(s, b.id) - (b.id === cur?.id ? pending : 0))), 0);
 }
 
 /** A Writing School lesson was finished. */

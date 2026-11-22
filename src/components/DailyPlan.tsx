@@ -39,7 +39,7 @@ export function PlanTrack() {
               <div className="plan-icon">{st === "done" ? "✅" : st === "later" ? "🔒" : b.icon}</div>
               <b>{b.title}</b>
               <span className="small muted">{b.id === "mock" ? "until you turn it in" : b.id === "lesson" || b.id === "review" ? "until you finish it" : b.id === "writing" ? `${b.minutes} min + ${WORDS_PER_DAY} new words` : `${b.minutes} min`}</span>
-              {b.id !== "break" && b.id !== "explore" && b.id !== "mock" && b.id !== "lesson" && b.id !== "review" && (
+              {b.id !== "break" && b.id !== "recess" && b.id !== "explore" && b.id !== "mock" && b.id !== "lesson" && b.id !== "review" && (
                 <div className="bar" style={{ height: 6 }}>
                   <div style={{ width: `${pct}%` }} />
                 </div>
@@ -119,7 +119,7 @@ export function LockedScreen({ route }: { route: string }) {
   );
 }
 
-const LABEL: Record<BlockId, string> = { warmup: "Warm-up", typing: "Typing", break: "Break", lesson: "Lesson", writing: "Writing", mock: "Mock test", review: "Score review", explore: "Free explore" };
+const LABEL: Record<BlockId, string> = { warmup: "Warm-up", typing: "Typing", break: "Break", recess: "Free play break", lesson: "Lesson", writing: "Writing", mock: "Mock test", review: "Score review", explore: "Free explore" };
 
 /** Parents page: block lengths, on/off, and a one-day unlock. */
 export function PlanEditor() {
@@ -145,7 +145,7 @@ export function PlanEditor() {
         ))}
       </div>
       <p className="small muted" style={{ marginTop: 4 }}>
-        {workMinutes(s, kind === "weekend")} min of work + {p[kind].explore ?? 0} min free explore = {planMinutes(s, kind === "weekend")} min. The break doesn't count.
+        {workMinutes(s, kind === "weekend")} min of work + {p[kind].explore ?? 0} min free explore = {planMinutes(s, kind === "weekend")} min. Breaks don't count as work.
       </p>
     </div>
   );
@@ -153,7 +153,7 @@ export function PlanEditor() {
     <div className="card">
       <h2>🗓️ Daily Plan</h2>
       <p className="muted small">
-        Dev follows one path, in order. While work remains, the menu is hidden and every screen sends him back to his current step, with a countdown to free play pinned at the top. Typing is a fixed loop (Sentence Sprint, then his current level). The lesson ends when he finishes it. Writing opens today's essay directly (no prompt picking) and saves his draft as he goes, so it carries over to the next day. Writing ends when he turns the essay in, or when its time is up and he has typed at least {WORDS_PER_DAY} new words that day. Time counts only while he is active (the clock pauses after 60 seconds idle). Set a block to 0 to skip it.
+        Dev follows one path, in order. While work remains, the menu is hidden and every screen sends him back to his current step, with a countdown to free play pinned at the top. After typing he gets a timed free play break (Road Trip, Garage, Shop, Cards, Craft), then the path sends him to the lesson. Typing is a fixed loop (Sentence Sprint, then his current level). The lesson ends when he finishes it. Writing opens today's essay directly (no prompt picking) and saves his draft as he goes, so it carries over to the next day. Writing ends when he turns the essay in, or when its time is up and he has typed at least {WORDS_PER_DAY} new words that day. Time counts only while he is active (the clock pauses after 60 seconds idle). Set a block to 0 to skip it.
       </p>
       <label className="row" style={{ gap: 8, marginBottom: 12 }}>
         <input type="checkbox" checked={p.on} onChange={(e) => setPlan((pl) => void (pl.on = e.target.checked))} />
